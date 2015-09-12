@@ -163,6 +163,7 @@ void pkt_data_dump(pkt_data_t const * const _pdt) {
   hexdump(_pdt->msg, ntohs(_pdt->msg_len));
 }
 
+/*
 void hook_data_dump(hook_data_t const * const _hdt) {
   char buf[16];
   printf( "outer_addr: %s\n"
@@ -174,3 +175,5 @@ void hook_data_dump(hook_data_t const * const _hdt) {
       ntohs(_hdt->outer_port), ntohs(_hdt->inner_port)
   );
 }
+*/
+

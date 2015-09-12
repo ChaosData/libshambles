@@ -27,6 +27,6 @@ char* inet_ntoa_r(char* buf, uint32_t haddr);
 void hexdump(uint8_t const * const _data, uint16_t const _data_len);
 void tcp_state_dump(tcp_state_t const * const _st);
 void pkt_data_dump(pkt_data_t const * const _pd);
-void hook_data_dump(hook_data_t const * const _hdt);
+//void hook_data_dump(hook_data_t const * const _hdt);
 
 #endif

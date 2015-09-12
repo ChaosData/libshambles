@@ -78,7 +78,7 @@ int main(int argc, char const *argv[]) {
   }
   printf("got connection from %s\n", inet_ntoa(sin.sin_addr));
   
-  uint64_t r;
+  uint64_t r = 0;
 
 
   pkt_data_t* pdt = (pkt_data_t*)calloc(1, sizeof(pkt_data_t));
@@ -86,10 +86,6 @@ int main(int argc, char const *argv[]) {
     return -1;
   }
 
-  hook_data_t* hdt = (hook_data_t*)calloc(1, sizeof(hook_data_t));
-  if ( hdt == nullptr ) {
-    return -2;
-  }
 
 /* orig */
   uint32_t outer_addr = inet_addr(argv[1]);
@@ -106,7 +102,9 @@ int main(int argc, char const *argv[]) {
   if (r <= 0) {
       perror("recv");
       close(sock_recv);
-      ret = 1; goto end;
+      ret = 1;
+      free(pdt);
+      return ret;
   } else {
       printf("GOT %lu bytes\n", r);
   }
@@ -118,7 +116,9 @@ int main(int argc, char const *argv[]) {
   if (pdt->msg == NULL) {
     perror("malloc");
     close(sock_recv);
-    ret = 2; goto end;
+    ret = 2;
+    free(pdt);
+    return ret;
   }
 
   r = recv(sock_recv, pdt->msg, msg_len, 0);
@@ -126,29 +126,58 @@ int main(int argc, char const *argv[]) {
     perror("recv2");
     close(sock_recv);
     free(pdt->msg);
-    ret = 1; goto end;
+    ret = 1;
+    free(pdt);
+    return ret;
   }
   if (r < msg_len) {
     fprintf(stderr, "%s\n", "r = recv(sock_recv, pdt->msg, msg_len, 0) < msg_len");
     free(pdt->msg);
-    ret = 2; goto end; 
+    ret = 2;
+    free(pdt);
+    return ret;
   }
 
   if (addr_in_subnet(pdt->src_addr, inner_addr, netmask) == 0) {
     puts("FLIPPPIN!!!!!!");
-    swap_pkt_data(pdt);
+    swap_pkt_data_inline(pdt);
   }
-  intercept(pdt, outer_addr, inner_addr);
+  forged_sockets_t fst;
+  intercept(&fst, pdt, outer_addr, inner_addr);
+
+  printf("sending/receiving...\n");
+  printf("outer_sock: %x, inner_sock: %x\n", fst.outer_sock, fst.inner_sock);
+
+  int r2 = 0;
+  char rec[1028] = {0};
+
+  puts("recv'ing from server:");
+  r2 = recv(fst.outer_sock, rec, sizeof(rec), 0);
+  printf("GOT (outer): %s\n", rec);
+  char imsg[] = "FAREWELL SERVER!\n";
+  r2 = send(fst.outer_sock, imsg, strlen(imsg), 0);
+  printf("outer send: %d\n", r2);
+  close(fst.outer_sock);
+
+  memset(rec, 0, sizeof(rec));
+
+  puts("recv'ing from client:");
+  r2 = recv(fst.inner_sock, rec, sizeof(rec), 0);
+  printf("GOT (inner): %s\n", rec);
+  char imsg2[] = "GOODBYE CLIENT !!\n";
+  r2 = send(fst.inner_sock, imsg2, strlen(imsg2), 0);
+  printf("inner send: %d\n", r2);
+  close(fst.inner_sock);
+
+  sleep(1);
+  intercept_teardown(pdt, outer_addr, inner_addr);
 
 
   close(sock_recv);
   close(sock);
 
   free(pdt->msg);
-
-end:
   free(pdt);
-  free(hdt);
 
   return ret;
 }

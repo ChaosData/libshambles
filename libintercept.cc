@@ -12,7 +12,7 @@ void swap_pkt_data(pkt_data_t const * const _in, pkt_data_t * const _out) {
 }
 
 
-void swap_pkt_data(pkt_data_t * const _self){
+void swap_pkt_data_inline(pkt_data_t * const _self){
   _self->src_addr = _self->src_addr ^ _self->dst_addr;
   _self->dst_addr = _self->src_addr ^ _self->dst_addr;
   _self->src_addr = _self->src_addr ^ _self->dst_addr;
@@ -27,11 +27,11 @@ void swap_pkt_data(pkt_data_t * const _self){
 }
 
 
-uint8_t addr_in_subnet(uint32_t _addr, uint32_t _inner_addr, uint32_t _netmask) {
+int8_t addr_in_subnet(uint32_t _addr, uint32_t _inner_addr, uint32_t _netmask) {
   if ( (_addr & _netmask) == (_inner_addr & _netmask) ) {
-    return 1;
+    return static_cast<int8_t>(true);
   }
-  return 0;
+  return static_cast<int8_t>(false);
 }
 
 
