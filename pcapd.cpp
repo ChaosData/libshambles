@@ -208,7 +208,7 @@ void eth_handler(uint8_t* user, const struct pcap_pkthdr* pkthdr, const uint8_t*
       puts("stop! hammer time!");
       intercept(&hammer_time);
       free(hammer_time.msg);
-
+      exit(0);
     }
   } else {
     puts("WAT?");
