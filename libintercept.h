@@ -27,7 +27,15 @@ typedef struct __attribute__((__packed__)) hook_data {
 
 } hook_data_t;
 
-uint8_t intercept(pkt_data_t const * const _pd, hook_data_t const * const _hd);
+void swap_pkt_data(pkt_data_t const * const _in, pkt_data_t * const _out);
+void swap_pkt_data(pkt_data_t * const _self);
+
+uint8_t addr_in_subnet(uint32_t _addr, uint32_t _inner_addr, uint32_t _netmask);
+
+uint8_t intercept(pkt_data_t const * const _pd, uint32_t const _outer_addr, uint32_t const _inner_addr);
+
+
+
 uint8_t intercept_setup(pkt_data_t const * const _pd, hook_data_t const * const _hd);
 uint8_t intercept_teardown(pkt_data_t const * const _pd, hook_data_t const * const _hd);
 

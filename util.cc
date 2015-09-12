@@ -145,13 +145,14 @@ void tcp_state_dump(tcp_state_t const * const _tst) {
 }
 
 void pkt_data_dump(pkt_data_t const * const _pdt) {
-  char buf[16];
+  char buf1[16];
+  char buf2[16];
   printf( "src_addr: %s\n"
           "dst_addr: %s\n"
           "src_port: %hu\n"
           "dst_port: %hu\n",
-      inet_ntoa_r(buf, _pdt->src_addr),
-      inet_ntoa_r(buf, _pdt->dst_addr),
+      inet_ntoa_r(buf1, _pdt->src_addr),
+      inet_ntoa_r(buf2, _pdt->dst_addr),
       ntohs(_pdt->src_port), ntohs(_pdt->dst_port)
   );
   printf( "seq: %x\n"

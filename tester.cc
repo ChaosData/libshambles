@@ -22,21 +22,25 @@
 int main(int argc, char const *argv[]) {
 
 
-  if (argc != 3) {
-    fputs("Usage: ./mitmd <internal IP> <public IP>\n", stderr);
+  if (argc != 4) {
+    fputs("Usage: ./mitmd <public IP> <internal IP> <internal netmask>\n", stderr);
     return 1;
   }
 
   if ( parse_ipv4(argv[1], strlen(argv[1])) != 0 ) {
-    fprintf(stderr, "Invalid <internal IP> value: %s\n", argv[1]);
+    fprintf(stderr, "Invalid <public IP> value: %s\n", argv[1]);
     return 2;
   }
 
   if ( parse_ipv4(argv[2], strlen(argv[2])) != 0 ) {
-    fprintf(stderr, "Invalid <public IP> value: %s\n", argv[2]);
+    fprintf(stderr, "Invalid <internal IP> value: %s\n", argv[2]);
     return 2;
   }
 
+  if ( parse_ipv4(argv[3], strlen(argv[3])) != 0 ) {
+    fprintf(stderr, "Invalid <internal netmask> value: %s\n", argv[3]);
+    return 2;
+  }
 
   int ret = 0;
 
@@ -88,24 +92,11 @@ int main(int argc, char const *argv[]) {
   }
 
 /* orig */
+  uint32_t outer_addr = inet_addr(argv[1]);
+  uint32_t inner_addr = inet_addr(argv[2]);
+  uint32_t netmask = inet_addr(argv[3]);
 
-  hdt->outer_addr = inet_addr(argv[1]);
-  hdt->inner_addr = inet_addr(argv[2]);
-
-  hdt->outer_port = htons(8081);
-  hdt->inner_port = htons(4949);
-
-
-/* reverse attempt */
-/*
-  hdt->outer_addr = inet_addr(argv[2]);
-  hdt->inner_addr = inet_addr(argv[1]);
-
-  hdt->outer_port = htons(8888);
-  hdt->inner_port = htons(7777);
-*/
-
-//  struct pkt_data pd = {0,0, 0,0, 0,0, 0,NULL};
+  printf("outer: %x, inner: %x\n", outer_addr, inner_addr);
   uint32_t msg_len = 0;
 
   r = recv(sock_recv, pdt, sizeof(pdt->src_addr) + sizeof(pdt->dst_addr)
@@ -143,15 +134,13 @@ int main(int argc, char const *argv[]) {
     ret = 2; goto end; 
   }
 
-  intercept(pdt, hdt);
+  if (addr_in_subnet(pdt->src_addr, inner_addr, netmask) == 0) {
+    puts("FLIPPPIN!!!!!!");
+    swap_pkt_data(pdt);
+  }
+  intercept(pdt, outer_addr, inner_addr);
 
-  /*char response[] = "200 OK";
-  r = send(sock_recv, response, sizeof(response), 0);
-  if (r < 0) {
-      perror("send");
-      close(sock_recv);
-      return 3;
-  }*/
+
   close(sock_recv);
   close(sock);
 
