@@ -151,25 +151,30 @@ int main(int argc, char const *argv[]) {
   int r2 = 0;
   char rec[1028] = {0};
 
-  puts("recv'ing from server:");
-  r2 = recv(fst.outer_sock, rec, sizeof(rec), 0);
-  printf("GOT (outer): %s\n", rec);
+
+
+
+//  puts("recv'ing from server:");
+//  r2 = recv(fst.outer_sock, rec, sizeof(rec), 0);
+//  printf("GOT (outer): %s\n", rec);
   char imsg[] = "FAREWELL SERVER!\n";
   r2 = send(fst.outer_sock, imsg, strlen(imsg), 0);
   printf("outer send: %d\n", r2);
-  close(fst.outer_sock);
+  //close(fst.outer_sock);
 
   memset(rec, 0, sizeof(rec));
 
-  puts("recv'ing from client:");
-  r2 = recv(fst.inner_sock, rec, sizeof(rec), 0);
-  printf("GOT (inner): %s\n", rec);
+//  puts("recv'ing from client:");
+//  r2 = recv(fst.inner_sock, rec, sizeof(rec), 0);
+//  printf("GOT (inner): %s\n", rec);
   char imsg2[] = "GOODBYE CLIENT !!\n";
   r2 = send(fst.inner_sock, imsg2, strlen(imsg2), 0);
   printf("inner send: %d\n", r2);
-  close(fst.inner_sock);
+  //close(fst.inner_sock);
 
-  sleep(1);
+  send_forged_sockets(&fst, "/tmp/shambles_socket");
+
+  sleep(120);
   intercept_teardown(pdt, outer_addr, inner_addr);
 
 

@@ -29,8 +29,18 @@ void swap_pkt_data_inline(pkt_data_t * const _self);
 
 int8_t addr_in_subnet(uint32_t _addr, uint32_t _inner_addr, uint32_t _netmask);
 
-int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd, uint32_t const _outer_addr, uint32_t const _inner_addr);
-int8_t intercept_teardown(pkt_data_t const * const _pd, uint32_t const _outer_addr, uint32_t const _inner_addr);
+int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd,
+                 uint32_t const _outer_addr, uint32_t const _inner_addr);
+
+int8_t intercept_teardown(pkt_data_t const * const _pd,
+                          uint32_t const _outer_addr,
+                          uint32_t const _inner_addr);
+
+int8_t addr_in_subnet(uint32_t _addr, uint32_t _inner_addr,
+                      uint32_t _netmask);
+
+ssize_t send_forged_sockets(forged_sockets_t const * const _fst,
+                           char const * const _path);
 
 }
 
