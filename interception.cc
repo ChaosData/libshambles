@@ -19,6 +19,7 @@
 #include "libintercept.h"
 #include "libforge_socket/libforge_socket.h"
 
+#include "conntrack.h"
 
 constexpr static char const dnat[] = "iptables -t nat -%c PREROUTING -m state --state INVALID,NEW,RELATED,ESTABLISHED -p tcp -s %s --sport %hu -d %s --dport %hu -j DNAT --to-destination %s:%hu";
 constexpr static uint16_t dnat_size = sizeof(dnat)    - 1                                                                     + 14         + 3  + 14         + 3                        + 14 + 3;
@@ -37,6 +38,8 @@ constexpr static uint16_t conntrackI_size = sizeof(conntrackI)    + 13          
 
 
 
+
+
 uint8_t intercept(pkt_data_t const * const _pd, hook_data_t const * const _hd) {
   pkt_data_dump(_pd);
   hook_data_dump(_hd);
@@ -51,6 +54,7 @@ uint8_t intercept(pkt_data_t const * const _pd, hook_data_t const * const _hd) {
   int client_sock = socket(AF_INET, SOCK_FORGE, 0);
   int server_sock = socket(AF_INET, SOCK_FORGE, 0);
 
+  printf("a: %u\n", ntohs(_pd->src_port));
 
   fake_client->src_ip = _hd->outer_addr;
   fake_client->dst_ip = _pd->dst_addr;
@@ -81,8 +85,10 @@ uint8_t intercept(pkt_data_t const * const _pd, hook_data_t const * const _hd) {
     return 3;
   }
 
+  printf("b: %u\n", ntohs(_pd->src_port));
 
-//  sleep(1);
+
+  sleep(1);
 
   char inner_addr[16] = {0};
   inet_ntoa_r(inner_addr, _hd->inner_addr);
@@ -97,8 +103,11 @@ uint8_t intercept(pkt_data_t const * const _pd, hook_data_t const * const _hd) {
   char src_addr[16] = {0};
   inet_ntoa_r(src_addr, _pd->src_addr);
 
+  printf("c: %u\n", ntohs(_pd->src_port));
+
 
   puts("Deleting old conntrack entry:");
+/*
   char conntrackD_command[conntrackD_size] = {0};
   snprintf((char*)conntrackD_command, conntrackD_size, conntrackD,
       src_addr, dst_addr,
@@ -108,7 +117,22 @@ uint8_t intercept(pkt_data_t const * const _pd, hook_data_t const * const _hd) {
   );
   printf("# %s\n", conntrackD_command);
   system(conntrackD_command);
+*/
 
+  int32_t delret = conntrack_delete_ipv4_tcp(_pd->src_addr, _pd->dst_addr,
+                                             _pd->src_port, _pd->dst_port,
+                                             _pd->dst_port, _pd->src_port,
+                                             _pd->dst_addr, _pd->src_addr);
+  if (delret != 1) {
+    printf("%d\n", delret);
+    close(server_sock);
+    close(client_sock);
+    exit(1);
+  }
+
+  printf("d: %u\n", ntohs(_pd->src_port));
+
+  puts("Injecting new conntrack entry:");
 
   char conntrackI_command[conntrackI_size] = {0};
 /*
@@ -127,11 +151,13 @@ uint8_t intercept(pkt_data_t const * const _pd, hook_data_t const * const _hd) {
   system(conntrackI_command);
 */
 
+/*
   snprintf((char*)conntrackI_command, conntrackI_size, conntrackI,
       outer_addr, //--orig-src
       dst_addr, //--orig-dst
       ntohs(_pd->src_port), //--orig-port-src
       ntohs(_pd->dst_port), //--orig-port-dst
+      // weird things will happen if source and dst are the same value (like using 1024 as the socket port)
 
       ntohs(_pd->dst_port), //--reply-port-src
       ntohs(_pd->src_port), //--reply-port-dst
@@ -141,6 +167,23 @@ uint8_t intercept(pkt_data_t const * const _pd, hook_data_t const * const _hd) {
   printf("# %s\n", conntrackI_command);
   system(conntrackI_command);
 
+  printf("e: %u\n", ntohs(_pd->src_port));
+*/
+
+
+  int32_t injret = conntrack_inject_ipv4_tcp(_hd->outer_addr, _pd->dst_addr,
+                                             _pd->src_port, _pd->dst_port,
+                                             _pd->dst_addr, _hd->outer_addr,
+                                             _pd->dst_port, _pd->src_port);
+  if (injret != 1) {
+    printf("%d\n", injret);
+    close(server_sock);
+    close(client_sock);
+    exit(1);
+  }
+
+
+  printf("f: %u\n", ntohs(_pd->src_port));
 
 
   char dnat_command[dnat_size] = {0};
@@ -148,6 +191,7 @@ uint8_t intercept(pkt_data_t const * const _pd, hook_data_t const * const _hd) {
   printf("# %s\n", dnat_command);
   system(dnat_command);
 
+  printf("g: %u\n", ntohs(_pd->src_port));
 
 
   char snat_command[snat_size] = {0};
@@ -155,6 +199,8 @@ uint8_t intercept(pkt_data_t const * const _pd, hook_data_t const * const _hd) {
   printf("# %s\n", snat_command);
   system(snat_command);
   
+  printf("h: %u\n", ntohs(_pd->src_port));
+
 
   printf("sending/receiving...\n");
   printf("server_sock: %x, client_sock: %x\n", server_sock, client_sock);
@@ -162,15 +208,15 @@ uint8_t intercept(pkt_data_t const * const _pd, hook_data_t const * const _hd) {
   int r = 0;
 
   char imsg2[] = "GOODBYE CLIENT !!\n";
-//  r = send(client_sock, imsg2, strlen(imsg2), 0);
-//  printf("client send: %d\n", r);
+  r = send(client_sock, imsg2, strlen(imsg2), 0);
+  printf("client send: %d\n", r);
 
   char imsg[] = "FAREWELL SERVER!\n";
-//  r = send(server_sock, imsg, strlen(imsg), 0);
-//  printf("server send: %d\n", r);
+  r = send(server_sock, imsg, strlen(imsg), 0);
+  printf("server send: %d\n", r);
 
 
-  char rec[1024] = {0};
+  char rec[1028] = {0};
 
   puts("recv'ing from server:");
   r = recv(server_sock, rec, sizeof(rec), 0);
@@ -181,6 +227,8 @@ uint8_t intercept(pkt_data_t const * const _pd, hook_data_t const * const _hd) {
   r = recv(client_sock, rec, sizeof(rec), 0);
   printf("GOT (client): %s\n", rec);
   close(client_sock);
+
+  printf("i: %u\n", ntohs(_pd->src_port));
 
 
   sleep(1);
