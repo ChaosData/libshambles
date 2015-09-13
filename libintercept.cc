@@ -101,3 +101,40 @@ ssize_t send_forged_sockets(forged_sockets_t const * const _fst,
 
   return sendmsg(fd, &msg, 0);
 }
+
+ssize_t send_forged_sockets2(int fd, forged_sockets_t const * const _fst,
+                           char const * const _path) {
+
+  struct msghdr msg = {0,0,0,0,0,0,0};
+  struct iovec iov[1];
+  struct cmsghdr *cmsg = NULL;
+  int fds[2] = { _fst->outer_sock, _fst->inner_sock };
+  union {
+    /* ancillary data buffer, wrapped in a union in order to ensure
+    it is suitably aligned */
+    char buf[CMSG_SPACE(sizeof(fds))];
+    struct cmsghdr align;
+  } u;
+  int *fdptr;
+
+  char data[] = "shambles";
+
+  iov[0].iov_base = data;
+  iov[0].iov_len = sizeof(data);
+
+  msg.msg_control = u.buf;
+  msg.msg_controllen = sizeof(u.buf);
+  msg.msg_name = NULL;
+  msg.msg_namelen = 0;
+  msg.msg_iov = iov;
+  msg.msg_iovlen = 1;
+
+  cmsg = CMSG_FIRSTHDR(&msg);
+  cmsg->cmsg_level = SOL_SOCKET;
+  cmsg->cmsg_type = SCM_RIGHTS;
+  cmsg->cmsg_len = CMSG_LEN(sizeof(int) * 2);
+  fdptr = (int *) CMSG_DATA(cmsg);
+  memcpy(fdptr, fds, sizeof(int) * 2);
+
+  return sendmsg(fd, &msg, 0);
+}
