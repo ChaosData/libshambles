@@ -59,12 +59,16 @@ void onUdsRead(uv_stream_t* sock, ssize_t nread, const uv_buf_t *buf) noexcept {
       DEBUG_printf("%s: got EOF\n", __func__);
       uv_close((uv_handle_t*) sock, free_socket);
     }
-    pkt_data_t* pdt = uds_state[(uv_pipe_t*)sock];
-    uds_state.erase((uv_pipe_t*)sock);
-    if(pdt->msg) {
-      free(pdt->msg);
+    if (uds_state.find((uv_pipe_t*)sock) != uds_state.end()) {
+      pkt_data_t* pdt = uds_state[(uv_pipe_t*)sock];
+      intercept_teardown(pdt, outer_addr, inner_addr);
+
+      uds_state.erase((uv_pipe_t*)sock);
+      if (pdt->msg) {
+        free(pdt->msg);
+      }
+      free(pdt);
     }
-    free(pdt);
 
   } else {
     std::vector<char>& v = streams[sock];
@@ -110,11 +114,11 @@ void onUdsConnect(uv_connect_t* conn, int status) noexcept {
     
     pkt_data_t* pdt = uds_state[(uv_pipe_t*)conn->handle];
     intercept_teardown(pdt, outer_addr, inner_addr);
+    uds_state.erase((uv_pipe_t*)conn->handle);
     if (pdt->msg) {
       free(pdt->msg);
     }
     free(pdt);
-    uds_state.erase((uv_pipe_t*)conn->handle);
     uv_close((uv_handle_t*) conn->handle, free_socket);
     free(conn);
     return;
@@ -198,6 +202,17 @@ void onRead(uv_stream_t* sock, ssize_t nread, const uv_buf_t *buf) noexcept {
       DEBUG_printf("%s: got EOF\n", __func__);
       uv_close((uv_handle_t*) sock, free_socket);
     }
+/*    if (uds_state.find((uv_pipe_t*)sock) != uds_state.end()) {
+      pkt_data_t* pdt = uds_state[(uv_pipe_t*)sock];
+      intercept_teardown(pdt, outer_addr, inner_addr);
+
+      uds_state.erase((uv_pipe_t*)sock);
+      if (pdt->msg) {
+        free(pdt->msg);
+      }
+      free(pdt);
+    }
+*/
   } else if (nread > 0) {
     DEBUG_printf("%s: %ld bytes read\n", __func__, nread);
     std::vector<char>& v = streams[sock];
@@ -209,10 +224,22 @@ void onRead(uv_stream_t* sock, ssize_t nread, const uv_buf_t *buf) noexcept {
         pkt_data_t* pdt = (pkt_data_t*)malloc(sizeof(pkt_data_t));
         if ( pdt == nullptr ) {
           uv_close((uv_handle_t*) sock, free_socket);
+          if (buf->base) {
+            free(buf->base);
+          }
           return;
         }
         memcpy(pdt, v.data(), sizeof(pkt_data_t)-sizeof(uint8_t*));
         pdt->msg = (uint8_t*)malloc(msg_len);
+        if (pdt->msg == nullptr) {
+          uv_close((uv_handle_t*) sock, free_socket);
+          free(pdt);
+          if (buf->base) {
+            free(buf->base);
+          }
+          return;
+        }
+
         memcpy(pdt->msg,
                v.data()+sizeof(pkt_data_t)-sizeof(uint8_t*),
                msg_len

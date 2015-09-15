@@ -10,13 +10,19 @@ typedef struct uds_data {
 
 typedef int hook_cb(uds_data_t* _data);
 
+#ifdef DEBUG
+  #define DEBUG_printf(...) fprintf(stderr, __VA_ARGS__)
+#else
+  #define DEBUG_printf(...) (void)0
+#endif
+
 extern "C" {
 
 int setup_server(char const * const _path);
 int8_t allow_user(char const * const _path, char const * const _user);
 int8_t register_hook(hook_cb* _hcb);
 int8_t start(int _fd, uds_data_t* _data);
-int teardown(int uds_client);
+int teardown(uds_data_t* _data);
 
 int close_forged_sockets_early(uds_data_t* _data);
 

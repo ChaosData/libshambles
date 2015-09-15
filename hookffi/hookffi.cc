@@ -22,7 +22,7 @@ std::string const linux_username_regex_str = "^[a-z_][a-z0-9_-]*[$]?$";
 std::regex const linux_username_regex(linux_username_regex_str);
 
 constexpr static char TEARDOWN_CMD[] = "teardown";
-constexpr static size_t TEARDOWN_CMD_LEN  = sizeof(TEARDOWN_CMD);
+constexpr static size_t TEARDOWN_CMD_LEN  = sizeof(TEARDOWN_CMD)-1;
 
 
 hook_cb * callback = nullptr;
@@ -32,7 +32,7 @@ hook_cb * callback = nullptr;
 
 
 int setup_server(char const * const _path) {
-  fprintf(stderr, "%s\n", __func__);
+  DEBUG_printf("%s\n", __func__);
 
   struct sockaddr_un addr;
   int fd;
@@ -73,7 +73,7 @@ bool is_numeric(const std::string& s) {
 }
 
 int8_t allow_user(char const * const _path, char const * const _user) {
-  fprintf(stderr, "%s\n", __func__);
+  DEBUG_printf("%s\n", __func__);
   std::string uname = _user;
 
   if (!is_numeric(uname) && !std::regex_match(uname, linux_username_regex)) {
@@ -97,7 +97,7 @@ int8_t allow_user(char const * const _path, char const * const _user) {
 }
 
 int8_t register_hook(hook_cb* _hcb) {
-  fprintf(stderr, "%s\n", __func__);
+  DEBUG_printf("%s\n", __func__);
 
   callback = _hcb;
   return 0;
@@ -105,25 +105,25 @@ int8_t register_hook(hook_cb* _hcb) {
 
 
 void cleanup(int sig) noexcept {
-  fprintf(stderr, "%s\n", __func__);
+  DEBUG_printf("%s\n", __func__);
 
   (void)sig;
   exit(0);
 }
 
 int8_t start(int _fd, uds_data_t* _data) {
-  fprintf(stderr, "%s: _fd:%d, _data:%p\n", __func__, _fd, _data);
+  DEBUG_printf("%s: _fd:%d, _data:%p\n", __func__, _fd, _data);
 
   signal(SIGINT, cleanup);
 
   struct sockaddr_un remote;
   int len = sizeof(struct sockaddr_un);
   int pid = 0;
-  //while (true) {
+  while (true) {
 
     int peer = accept(_fd, (struct sockaddr*)&remote, (socklen_t *)&len);
-    fprintf(stderr, "peer: %d\n", peer);
-    /*
+    DEBUG_printf("peer: %d\n", peer);
+    
     pid = fork();
     if (pid == -1) {
       close(peer);
@@ -132,7 +132,7 @@ int8_t start(int _fd, uds_data_t* _data) {
       close(peer);
       continue;
     }
-    */
+    
 
     int sent_fd[2];
     struct msghdr message;
@@ -181,22 +181,26 @@ int8_t start(int _fd, uds_data_t* _data) {
     _data->inner_sock = sent_fd[1];
     _data->uds_client = peer;
     (*callback)(_data);
-  //}
+  }
   return 1;
 }
 
-int teardown(int uds_client) {
-  fprintf(stderr, "%s\n", __func__);
+int teardown(uds_data_t* _data) {
+  DEBUG_printf("%s\n", __func__);
+  close(_data->outer_sock);
+  close(_data->inner_sock);
 
-  send(uds_client, TEARDOWN_CMD, TEARDOWN_CMD_LEN, 0);
-  return close(uds_client);
+  send(_data->uds_client, TEARDOWN_CMD, TEARDOWN_CMD_LEN, 0);
+  return close(_data->uds_client);
 }
 
 
 int close_forged_sockets_early(uds_data_t* _data) {
-  fprintf(stderr, "%s\n", __func__);
+  DEBUG_printf("%s\n", __func__);
 
+  //used b/c of conntrack/snat/dnat quirk
   send(_data->inner_sock, "\x00", 1, 0);
+  
   close(_data->outer_sock);
   close(_data->inner_sock);
   return 0;

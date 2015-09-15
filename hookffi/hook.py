@@ -1,5 +1,7 @@
 from ctypes import *
 import sys
+import socket
+import time
 
 libName = './hookffi.so'
 hookffi = CDLL(libName)
@@ -13,22 +15,28 @@ class uds_data(Structure):
 
 HOOKFUNC = CFUNCTYPE(c_int, POINTER(uds_data))
 
-
 def hook(uds_datap):
-  print "hooked"
-
-  hookffi.close_forged_sockets_early(uds_datap)
-  hookffi.teardown(uds_datap.contents.uds_client)
-
+  outer_sock = socket.fromfd(uds_datap.contents.outer_sock, socket.AF_INET,
+                              socket.SOCK_STREAM, 0)
+  inner_sock = socket.fromfd(uds_datap.contents.inner_sock, socket.AF_INET,
+                              socket.SOCK_STREAM, 0)
+  custom_hook(outer_sock, inner_sock)
+  hookffi.teardown(uds_datap)
   return 0
 
+
+def custom_hook(outer_sock, inner_sock):
+  print "hooked!"
+  outer_sock.sendall("YO SERVER, THIS IS PYTHON!\n")
+  outer_sock.close()
+  inner_sock.sendall("YO CLIENT, THIS IS PYTHON!\n")
+  inner_sock.close()
 
 
 
 
 
 def main():
-
   if len(sys.argv) != 3:
     print "Usage: python hook.py <unix domain socket path> " \
           "<user to expose access>"
@@ -45,15 +53,6 @@ def main():
 
   data = uds_data()
   hookffi.start(uds_server_sock, byref(data))
-
-
-
-
-
-
-
-
-
 
 if __name__ == "__main__":
   main()
