@@ -6,7 +6,6 @@
 #include "util.h"
 
 
-
 uint8_t parse_ipv4(const char* str, uint64_t len){
   uint8_t digits = 0;
   uint8_t vals[3] = { 0,0,0 };
@@ -108,19 +107,19 @@ void hexdump(uint8_t const * const _data, uint16_t const _data_len) {
     }
   }
   uint8_t rem[16] = {0};
-  puts("uint8_t rem[16] = {0};");
+  printf("uint8_t rem[16] = {0};\n");
   memcpy(rem, &(_data[i]), modlen);
-  puts("memcpy(rem, &(_data[i]), modlen);");
+  printf("memcpy(rem, &(_data[i]), modlen);\n");
   hexdump_line(rem, i);
-  puts("hexdump_line(rem, i);");
+  printf("hexdump_line(rem, i);\n");
 }
 
 void tcp_state_dump(tcp_state_t const * const _tst) {
   char buf[16];
   printf( "src_ip: %s\n"
-          "dst_ip: %s\n"
-          "sport: %hu\n"
-          "dport: %hu\n",
+                "dst_ip: %s\n"
+                "sport: %hu\n"
+                "dport: %hu\n",
       inet_ntoa_r(buf, _tst->src_ip),
       inet_ntoa_r(buf, _tst->dst_ip),
       ntohs(_tst->sport), ntohs(_tst->dport)
@@ -148,16 +147,16 @@ void pkt_data_dump(pkt_data_t const * const _pdt) {
   char buf1[16];
   char buf2[16];
   printf( "src_addr: %s\n"
-          "dst_addr: %s\n"
-          "src_port: %hu\n"
-          "dst_port: %hu\n",
-      inet_ntoa_r(buf1, _pdt->src_addr),
-      inet_ntoa_r(buf2, _pdt->dst_addr),
-      ntohs(_pdt->src_port), ntohs(_pdt->dst_port)
+                "dst_addr: %s\n"
+                "src_port: %hu\n"
+                "dst_port: %hu\n",
+    inet_ntoa_r(buf1, _pdt->src_addr),
+    inet_ntoa_r(buf2, _pdt->dst_addr),
+    ntohs(_pdt->src_port), ntohs(_pdt->dst_port)
   );
   printf( "seq: %x\n"
-          "ack: %x\n",
-      _pdt->seq, _pdt->ack
+                "ack: %x\n",
+    _pdt->seq, _pdt->ack
   );
 
   hexdump(_pdt->msg, ntohs(_pdt->msg_len));

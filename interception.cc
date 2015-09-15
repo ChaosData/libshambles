@@ -38,10 +38,11 @@ constexpr static uint16_t conntrackI_size = sizeof(conntrackI)    + 13          
 
 
 
-
-
 int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd, uint32_t const _outer_addr, uint32_t const _inner_addr) {
+  DEBUG_printf("%s\n", __func__);
+  #ifdef DEBUG
   pkt_data_dump(_pd);
+  #endif
 
   struct tcp_state *fake_server;
   struct tcp_state *fake_client;
@@ -70,7 +71,7 @@ int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd, uint32_t 
   fake_server->snd_una = ntohl(_pd->ack);
 
   if (forge_socket_set_state(client_sock, fake_server) != 0) {
-    printf("fail1\n");
+    fprintf(stderr, "forge_socket_set_state for inner socket failed\n");
     close(client_sock);
     close(server_sock);
     free(fake_server);
@@ -80,7 +81,7 @@ int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd, uint32_t 
 
 
   if (forge_socket_set_state(server_sock, fake_client) != 0) {
-    printf("fail2\n");
+    fprintf(stderr, "fail2\n");
     close(client_sock);
     close(server_sock);
     free(fake_server);
@@ -106,7 +107,7 @@ int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd, uint32_t 
   inet_ntoa_r(src_addr, _pd->src_addr);
 
 
-  puts("Deleting old conntrack entry:");
+  DEBUG_printf("Deleting old conntrack entry.");
 
   int32_t delret = conntrack_delete_ipv4_tcp(_pd->src_addr, _pd->dst_addr,
                                              _pd->src_port, _pd->dst_port,
@@ -119,7 +120,7 @@ int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd, uint32_t 
     return -3;
   }
 
-  puts("Injecting new conntrack entry:");
+  DEBUG_printf("Injecting new conntrack entries.");
 
   char conntrackI_command[conntrackI_size] = {0};
 
@@ -136,14 +137,14 @@ int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd, uint32_t 
 
   char dnat_command[dnat_size] = {0};
   snprintf(dnat_command, dnat_size, dnat, 'A', src_addr, ntohs(_pd->src_port), dst_addr, ntohs(_pd->dst_port), inner_addr_str, ntohs(_pd->dst_port));
-  printf("# %s\n", dnat_command);
+  DEBUG_printf("# %s\n", dnat_command);
   system(dnat_command);
 
 
 
   char snat_command[snat_size] = {0};
   snprintf(snat_command, snat_size, snat, 'A', inner_addr_str, ntohs(_pd->dst_port), src_addr, ntohs(_pd->src_port), dst_addr, ntohs(_pd->dst_port));
-  printf("# %s\n", snat_command);
+  DEBUG_printf("# %s\n", snat_command);
   system(snat_command);
   
   _out->outer_sock = server_sock;
@@ -184,6 +185,8 @@ int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd, uint32_t 
 */
 
 int8_t intercept_teardown(pkt_data_t const * const _pd, uint32_t const _outer_addr, uint32_t const _inner_addr) {
+  DEBUG_printf("%s\n", __func__);
+  
   char inner_addr_str[16] = {0};
   inet_ntoa_r(inner_addr_str, _inner_addr);
 
@@ -199,12 +202,12 @@ int8_t intercept_teardown(pkt_data_t const * const _pd, uint32_t const _outer_ad
 
   char dnat_command[dnat_size] = {0};
   snprintf(dnat_command, dnat_size, dnat, 'D', src_addr, ntohs(_pd->src_port), dst_addr, ntohs(_pd->dst_port), inner_addr_str, ntohs(_pd->dst_port));
-  printf("# %s\n", dnat_command);
+  DEBUG_printf("# %s\n", dnat_command);
   system(dnat_command);
 
   char snat_command[snat_size] = {0};
   snprintf(snat_command, snat_size, snat, 'D', inner_addr_str, ntohs(_pd->dst_port), src_addr, ntohs(_pd->src_port), dst_addr, ntohs(_pd->dst_port));
-  printf("# %s\n", snat_command);
+  DEBUG_printf("# %s\n", snat_command);
   system(snat_command);
   
 

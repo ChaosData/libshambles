@@ -14,6 +14,11 @@
 
 
 int main(int argc, char const * const argv[]) {
+  if (argc != 2) {
+    fprintf(stderr, "Usage: ./%s <unix domain socket path>\n", argv[0]);
+    return -1;
+  }
+
   char const * const path = argv[1];
 
   struct sockaddr_un addr;
@@ -21,24 +26,24 @@ int main(int argc, char const * const argv[]) {
 
   if ((fd = socket(AF_LOCAL, SOCK_STREAM, 0)) < 0) {
     perror("main:socket");
-    return fd;
+    return -2;
   }
 
   memset(&addr, 0, sizeof(addr));
 
   addr.sun_family = AF_LOCAL;
-  unlink(path);
   strcpy(addr.sun_path, path);
 
+  unlink(path);
   if (bind(fd, (struct sockaddr *) &(addr),
                               sizeof(addr)) < 0) {
     perror("main:bind");
-    return -1;
+    return -3;
   }
 
   if (listen(fd, 1) < 0) {
     perror("main:listen");
-    return -1;
+    return -4;
   }
 
   struct sockaddr_un remote;
@@ -63,11 +68,6 @@ int main(int argc, char const * const argv[]) {
   int res;
 
   memset(&message, 0, sizeof(struct msghdr));
-
-  struct msghdr msgh;
-   struct cmsghdr *cmsg;
-   int *ttlptr;
-   int received_ttl;
 
   /* For the dummy data */
   iov[0].iov_base = data;
@@ -101,18 +101,32 @@ int main(int argc, char const * const argv[]) {
   int r = 0;
   char rec[1024] = {0};
 
-  puts("recv'ing from client:");
+  puts("recv'ing from server:");
   r = recv(sent_fd[0], rec, sizeof(rec), 0);
   printf("GOT (outer): %s\n", rec);
+  r = send(sent_fd[0], "BYE-BYE SERVER!\n", strlen("BYE-BYE SERVER!\n"), 0);
 
   memset(rec, 0, sizeof(rec));
 
   puts("recv'ing from client:");
   r = recv(sent_fd[1], rec, sizeof(rec), 0);
   printf("GOT (inner): %s\n", rec);
+  r = send(sent_fd[1], "SO LONG CLIENT!\n", strlen("SO LONG CLIENT!\n"), 0);
 
-  close(sent_fd[0]);
-  close(sent_fd[1]);
+  r = close(sent_fd[0]);
+  if ( r == -1 ) {
+    perror("close(sent_fd[0])");
+  }
+
+  r = close(sent_fd[1]);
+  if ( r == -1 ) {
+    perror("close(sent_fd[1])");
+  }
+  puts("sending back teardown command");
+  send(peer, "teardown", strlen("teardown"), 0);
+  close(peer);
+
+  unlink(path);
 
 
   return 0;
