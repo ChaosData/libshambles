@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
+
 #include <unistd.h>
 #include <sys/capability.h>
 
@@ -48,19 +50,36 @@ void free_socket(uv_handle_t* handle) noexcept {
 
 void onUdsRead(uv_stream_t* sock, ssize_t nread, const uv_buf_t *buf) noexcept {
   DEBUG_printf("%s\n", __func__ );
+  if (nread < 0) {
+    if (nread != UV_EOF) {
+      fprintf(stderr, "Read error %s\n", uv_err_name(nread));
+      //uv_close((uv_handle_t*) sock, free_socket);
+      //free(sock);
+    } else {
+      DEBUG_printf("%s: got EOF\n", __func__);
+      uv_close((uv_handle_t*) sock, free_socket);
+    }
+    pkt_data_t* pdt = uds_state[(uv_pipe_t*)sock];
+    uds_state.erase((uv_pipe_t*)sock);
+    if(pdt->msg) {
+      free(pdt->msg);
+    }
+    free(pdt);
 
-  std::vector<char>& v = streams[sock];
-  std::copy(buf->base, buf->base+nread, std::back_inserter(v));
-  if ( v.size() == teardown.length() ) {
-    if ( std::string(v.data(), teardown.length()) == teardown) {
-      DEBUG_printf("tearing down rules\n");
-      pkt_data_t* pdt = uds_state[(uv_pipe_t*)sock];
-      intercept_teardown(pdt, outer_addr, inner_addr);
-      uds_state.erase((uv_pipe_t*)sock);
-      if(pdt->msg) {
-        free(pdt->msg);
+  } else {
+    std::vector<char>& v = streams[sock];
+    std::copy(buf->base, buf->base+nread, std::back_inserter(v));
+    if ( v.size() == teardown.length() ) {
+      if ( std::string(v.data(), teardown.length()) == teardown) {
+        DEBUG_printf("tearing down rules\n");
+        pkt_data_t* pdt = uds_state[(uv_pipe_t*)sock];
+        intercept_teardown(pdt, outer_addr, inner_addr);
+        uds_state.erase((uv_pipe_t*)sock);
+        if(pdt->msg) {
+          free(pdt->msg);
+        }
+        free(pdt);
       }
-      free(pdt);
     }
   }
   if (buf->base) {
