@@ -13,20 +13,43 @@
 #include <sys/types.h>
 
 
+#include <string>
+#include <regex>
+#include <cctype>
+
+std::string const linux_username_regex_str = "^[a-z_][a-z0-9_-]*[$]?$";
+std::regex const linux_username_regex(linux_username_regex_str);
+
+bool is_numeric(const std::string& s) {
+    return !s.empty() && std::find_if(
+        s.begin(), 
+        s.end(),
+        [](char c) {
+          return !std::isdigit(c);
+        }) == s.end();
+}
+
 int main(int argc, char const * const argv[]) {
-  if (argc != 2) {
-    fprintf(stderr, "Usage: ./%s <unix domain socket path>\n", argv[0]);
+  if (argc != 3) {
+    fprintf(stderr, "Usage: ./%s <unix domain socket path> "
+                    "<user to expose access>\n", argv[0]);
     return -1;
   }
 
   char const * const path = argv[1];
+  std::string uname = argv[2];
 
+  if (!is_numeric(uname) && !std::regex_match(uname, linux_username_regex)) {
+    fprintf(stderr, "Invalid username/uid: %s\n", argv[2]);
+    return -2;
+  }
+  
   struct sockaddr_un addr;
   int fd;
 
   if ((fd = socket(AF_LOCAL, SOCK_STREAM, 0)) < 0) {
     perror("main:socket");
-    return -2;
+    return -3;
   }
 
   memset(&addr, 0, sizeof(addr));
@@ -38,13 +61,29 @@ int main(int argc, char const * const argv[]) {
   if (bind(fd, (struct sockaddr *) &(addr),
                               sizeof(addr)) < 0) {
     perror("main:bind");
-    return -3;
+    return -4;
   }
 
   if (listen(fd, 1) < 0) {
     perror("main:listen");
+    return -5;
+  }
+
+  pid_t pid = fork();
+  if(pid >= 0) {
+    if(pid == 0) { //child
+      std::string acl = "u:" + uname + ":rwx";
+      const char* const execve_argv[] = {"setfacl", "-m", acl.c_str(), path, nullptr};
+
+      execve("/bin/setfacl", const_cast<char *const *>(execve_argv), nullptr);
+    }
+  }
+  else {
+    perror("fork");
     return -4;
   }
+
+  
 
   struct sockaddr_un remote;
   int len = sizeof(struct sockaddr_un);
@@ -82,7 +121,7 @@ int main(int argc, char const * const argv[]) {
 
   if((res = recvmsg(peer, &message, 0)) <= 0) {
     perror("recvmsg");
-   return res;
+    return -6;
   }
 
 

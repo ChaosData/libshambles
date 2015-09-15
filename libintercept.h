@@ -42,8 +42,7 @@ int8_t addr_in_subnet(uint32_t _addr, uint32_t _inner_addr,
 ssize_t send_forged_sockets(forged_sockets_t const * const _fst,
                            char const * const _path);
 
-ssize_t send_forged_sockets2(int fd, forged_sockets_t const * const _fst,
-                           char const * const _path);
+ssize_t send_forged_sockets2(int fd, forged_sockets_t const * const _fst);
 
 }
 

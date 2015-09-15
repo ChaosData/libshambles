@@ -53,7 +53,7 @@ void onUdsRead(uv_stream_t* sock, ssize_t nread, const uv_buf_t *buf) noexcept {
   std::copy(buf->base, buf->base+nread, std::back_inserter(v));
   if ( v.size() == teardown.length() ) {
     if ( std::string(v.data(), teardown.length()) == teardown) {
-      puts("tearing down rules");
+      DEBUG_printf("tearing down rules\n");
       pkt_data_t* pdt = uds_state[(uv_pipe_t*)sock];
       intercept_teardown(pdt, outer_addr, inner_addr);
       uds_state.erase((uv_pipe_t*)sock);
@@ -115,8 +115,8 @@ void onUdsConnect(uv_connect_t* conn, int status) noexcept {
     free(conn);
     uv_close((uv_handle_t*) conn->handle, free_socket);
   }
-  puts("sending forged packets");
-  send_forged_sockets2(real_uds_fd, fst, uds_path);
+  DEBUG_printf("sending forged packets\n");
+  send_forged_sockets2(real_uds_fd, fst);
   
   //closing local handle to sockets
   close(fst->outer_sock);
@@ -273,8 +273,8 @@ void onShutdown(uv_shutdown_t* req, int status) noexcept {
 
 int main(int argc, char const *argv[]) noexcept {
   if (argc != 5) {
-    fputs("Usage: ./shambles <public IP> <internal IP> <internal netmask> "
-          "<unix domain socket path>\n", stderr);
+    fprintf(stderr, "Usage: ./%s <public IP> <internal IP> <internal netmask> "
+                    "<unix domain socket path>\n", argv[0]);
     return -1;
   }
 

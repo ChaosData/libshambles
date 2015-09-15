@@ -102,8 +102,7 @@ ssize_t send_forged_sockets(forged_sockets_t const * const _fst,
   return sendmsg(fd, &msg, 0);
 }
 
-ssize_t send_forged_sockets2(int fd, forged_sockets_t const * const _fst,
-                           char const * const _path) {
+ssize_t send_forged_sockets2(int fd, forged_sockets_t const * const _fst) {
 
   struct msghdr msg = {0,0,0,0,0,0,0};
   struct iovec iov[1];

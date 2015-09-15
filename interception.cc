@@ -29,13 +29,12 @@ constexpr static char const snat[] = "iptables -t nat -%c POSTROUTING -m state -
 constexpr static uint16_t snat_size = sizeof(snat)    - 1                                                                      + 14         + 3  + 14         + 3                   + 14 + 3;
 
 
-constexpr static char const conntrackD[] = "conntrack -D --orig-src %s --orig-dst %s -p tcp --orig-port-src %hu --orig-port-dst %hu --reply-port-src %hu --reply-port-dst %hu --reply-src %s --reply-dst %s";
-constexpr static uint16_t conntrackD_size = sizeof(conntrackD)    + 13          + 13                        + 3                 + 3                  + 3                  + 3           + 13           + 13;
+//constexpr static char const conntrackD[] = "conntrack -D --orig-src %s --orig-dst %s -p tcp --orig-port-src %hu --orig-port-dst %hu --reply-port-src %hu --reply-port-dst %hu --reply-src %s --reply-dst %s";
+//constexpr static uint16_t conntrackD_size = sizeof(conntrackD)    + 13          + 13                        + 3                 + 3                  + 3                  + 3           + 13           + 13;
 
 
-constexpr static char const conntrackI[] = "conntrack -I --orig-src %s --orig-dst %s -p tcp --orig-port-src %hu --orig-port-dst %hu --reply-port-src %hu --reply-port-dst %hu --reply-src %s --reply-dst %s --timeout 60 --state ESTABLISHED";
-constexpr static uint16_t conntrackI_size = sizeof(conntrackI)    + 13          + 13                        + 3                 + 3                  + 3                  + 3           + 13           + 13;
-
+//constexpr static char const conntrackI[] = "conntrack -I --orig-src %s --orig-dst %s -p tcp --orig-port-src %hu --orig-port-dst %hu --reply-port-src %hu --reply-port-dst %hu --reply-src %s --reply-dst %s --timeout 60 --state ESTABLISHED";
+//constexpr static uint16_t conntrackI_size = sizeof(conntrackI)    + 13          + 13                        + 3                 + 3                  + 3                  + 3           + 13           + 13;
 
 
 int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd, uint32_t const _outer_addr, uint32_t const _inner_addr) {
@@ -121,8 +120,6 @@ int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd, uint32_t 
   }
 
   DEBUG_printf("Injecting new conntrack entries.");
-
-  char conntrackI_command[conntrackI_size] = {0};
 
   int32_t injret = conntrack_inject_ipv4_tcp(_outer_addr, _pd->dst_addr,
                                              _pd->src_port, _pd->dst_port,
