@@ -5,6 +5,10 @@ v0.8:
  - separate teardown in tester such that unix domain socket peer instructs to perform the teardown
  - write python/c unix domain socket client example
 
+
 v0.9:
- - polish, polish, polish
- - parameterize pcapd example server
+ - polish, polish, polish (refactor newtest to better handle resource cleanup)
+ - parameterize pcapd example server (regexes would be nice)
+ - sanity check libshambles
+ - organize code based on license
+ - get 2nd opinions on library API design
