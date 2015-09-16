@@ -32,6 +32,13 @@ typedef unsigned char u_char;
 
 #include "libintercept.h"
 
+
+#ifdef DEBUG
+  #define DEBUG_printf(...) fprintf(stderr, __VA_ARGS__)
+#else
+  #define DEBUG_printf(...) (void)0
+#endif
+
 char ebuf[EBUF_LEN] = {0};
 int client_sock = 0;
 int r = 0;
@@ -80,7 +87,7 @@ bool tcp_handler(uint32_t rsize, const uint8_t* bytes) {
   if ( rsize < sizeof(tcphdr) ) {
     return false;
   }
-  puts("--->TCP!");
+  DEBUG_printf("--->TCP!\n");
   tcphdr* hdr = (tcphdr*)bytes;
   uint8_t hdr_size = (hdr->th_off*4);
   if (rsize < hdr_size) {
@@ -122,7 +129,7 @@ bool ip_handler(uint32_t rsize, const uint8_t* bytes) {
   if ( rsize < sizeof(ip) ) {
     return false;
   }
-  puts("->IP!");
+  DEBUG_printf("->IP!\n");
 
   ip* hdr4 = (ip*)bytes;
   uint8_t version = hdr4->ip_v;
@@ -164,7 +171,7 @@ bool ip_handler(uint32_t rsize, const uint8_t* bytes) {
 
 void eth_handler(uint8_t* user, const struct pcap_pkthdr* pkthdr, const uint8_t* bytes) {
   (void)user;
-  puts("GOT ONE!");
+  DEBUG_printf("GOT ONE!\n");
   uint32_t capturedSize = pkthdr->caplen;
   ether_header* hdr = (ether_header*)bytes;
 
@@ -179,7 +186,7 @@ void eth_handler(uint8_t* user, const struct pcap_pkthdr* pkthdr, const uint8_t*
       exit(0);
     }
   } else {
-    puts("WAT?");
+    DEBUG_printf("WAT?\n");
   }
 
   return;
@@ -238,7 +245,7 @@ int main() {
     mask = 0;
   }
 
-  handle = pcap_open_live(dev, 1000, 0, 10, errbuf);
+  handle = pcap_open_live(dev, 1000, 0, 1, errbuf);
   if (handle == NULL) {
     fprintf(stderr, "Couldn't open device %s: %s\n", dev, errbuf);
     return(2);

@@ -196,7 +196,7 @@ int8_t onPktDataReceived(uv_stream_t* sock, pkt_data_t* pdt) noexcept {
 void onRead(uv_stream_t* sock, ssize_t nread, const uv_buf_t *buf) noexcept {
   DEBUG_printf("%s\n", __func__ );
 
-  #ifdef DEBUG
+  #ifndef DEBUG
   struct timeval tv;
 
   gettimeofday(&tv, NULL);

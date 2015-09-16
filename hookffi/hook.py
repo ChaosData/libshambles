@@ -27,12 +27,12 @@ def hook(uds_datap):
 
 def custom_hook(outer_sock, inner_sock):
   print "hooked!"
-  outer_sock.sendall("YO SERVER, THIS IS PYTHON!\n")
+  print "Client says: " + inner_sock.recv(1024)
   inner_sock.sendall("YO CLIENT, THIS IS PYTHON!\n")
 
-  print "Client says: " + inner_sock.recv(1024)
   inner_sock.close()
 
+  outer_sock.sendall("YO SERVER, THIS IS PYTHON!\n")
   print "Server says: " + outer_sock.recv(1024)
   outer_sock.close()
 

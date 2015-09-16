@@ -69,13 +69,32 @@ int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd, uint32_t 
                                              _pd->dst_port, _pd->src_port,
                                              _pd->dst_addr, _outer_addr);
   if (delret != 1) {
-    printf("%d\n", delret);
+    printf("delret: %d\n", delret);
     return -3;
   }
 
 
+  DEBUG_printf("Injecting new conntrack entries.");
+  int32_t injret = conntrack_inject_ipv4_tcp(_outer_addr, _pd->dst_addr,
+                                             _pd->src_port, _pd->dst_port,
+                                             _pd->dst_addr, _outer_addr,
+                                             _pd->dst_port, _pd->src_port);
+  if (injret != 1) {
+    printf("injret: %d\n", injret);
+    return -4;
+  }
 
 
+  char dnat_command[dnat_size] = {0};
+  snprintf(dnat_command, dnat_size, dnat, 'A', src_addr, ntohs(_pd->src_port), dst_addr, ntohs(_pd->dst_port), inner_addr_str, ntohs(_pd->dst_port));
+  DEBUG_printf("# %s\n", dnat_command);
+  system(dnat_command);
+
+
+  char snat_command[snat_size] = {0};
+  snprintf(snat_command, snat_size, snat, 'A', inner_addr_str, ntohs(_pd->dst_port), src_addr, ntohs(_pd->src_port), dst_addr, ntohs(_pd->dst_port));
+  DEBUG_printf("# %s\n", snat_command);
+  system(snat_command);
 
 
 
@@ -126,35 +145,6 @@ int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd, uint32_t 
 
 
 
-
-
-
-
-  DEBUG_printf("Injecting new conntrack entries.");
-  int32_t injret = conntrack_inject_ipv4_tcp(_outer_addr, _pd->dst_addr,
-                                             _pd->src_port, _pd->dst_port,
-                                             _pd->dst_addr, _outer_addr,
-                                             _pd->dst_port, _pd->src_port);
-  if (injret != 1) {
-    printf("%d\n", injret);
-    close(server_sock);
-    close(client_sock);
-    return -4;
-  }
-
-
-  char dnat_command[dnat_size] = {0};
-  snprintf(dnat_command, dnat_size, dnat, 'A', src_addr, ntohs(_pd->src_port), dst_addr, ntohs(_pd->dst_port), inner_addr_str, ntohs(_pd->dst_port));
-  DEBUG_printf("# %s\n", dnat_command);
-  system(dnat_command);
-
-
-
-  char snat_command[snat_size] = {0};
-  snprintf(snat_command, snat_size, snat, 'A', inner_addr_str, ntohs(_pd->dst_port), src_addr, ntohs(_pd->src_port), dst_addr, ntohs(_pd->dst_port));
-  DEBUG_printf("# %s\n", snat_command);
-  system(snat_command);
-  
   _out->outer_sock = server_sock;
   _out->inner_sock = client_sock;
 
