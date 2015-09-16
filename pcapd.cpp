@@ -32,6 +32,9 @@ typedef unsigned char u_char;
 
 #include "libintercept.h"
 
+char ebuf[EBUF_LEN] = {0};
+int client_sock = 0;
+int r = 0;
 
 const uint8_t* strnstrn(const uint8_t* haystack, uint32_t hn, const uint8_t* needle, uint32_t nn) {
   for ( uint32_t i(0); i < hn; i++ ) {
@@ -51,42 +54,7 @@ struct pkt_data hammer_time = {0,0, 0,0, 0,0, 0,nullptr};
 
 void intercept(struct pkt_data* pb) {
 
-  char ebuf[EBUF_LEN] = {0};
 
-  int client_sock = 0;
-
-  struct sockaddr_in remote; memset(&remote, 0, sizeof(remote));
-  remote.sin_family = AF_INET;
-  remote.sin_port = htons(5555);
-
-  int r = 0;
-
-  r = inet_pton(AF_INET, "127.0.0.1", &remote.sin_addr);
-  if (r != 1) {
-    if (r == 0) {
-      fprintf(stderr, "remote:inet_pton => %s\n", "Invalid network address string.");
-      exit(1);
-    } else {
-      strerror_r(errno, ebuf, sizeof(ebuf));
-      fprintf(stderr, "remote:inet_pton => %s\n", ebuf);
-      exit(1);
-    }
-  }
-
-  client_sock = socket(AF_INET, SOCK_STREAM, 0);
-  if (client_sock < 0) {
-    strerror_r(errno, ebuf, sizeof(ebuf));
-    fprintf(stderr, "client_sock:socket => %s\n", ebuf);
-    exit(1);
-  }
-
-  r = connect(client_sock, (struct sockaddr*) &remote, sizeof(remote));
-  if (r != 0) {
-    strerror_r(errno, ebuf, sizeof(ebuf));
-    fprintf(stderr, "client_sock:connect => %s\n", ebuf);
-    free(hammer_time.msg);
-    exit(1);
-  }
 
   r = send(client_sock, pb, 22, 0);
   if( r < 0 ) {
@@ -228,13 +196,49 @@ int main() {
   bpf_u_int32 net;    /* The IP of our sniffing device */
 
 
+
+
+  struct sockaddr_in remote; memset(&remote, 0, sizeof(remote));
+  remote.sin_family = AF_INET;
+  remote.sin_port = htons(5555);
+
+
+  r = inet_pton(AF_INET, "127.0.0.1", &remote.sin_addr);
+  if (r != 1) {
+    if (r == 0) {
+      fprintf(stderr, "remote:inet_pton => %s\n", "Invalid network address string.");
+      exit(1);
+    } else {
+      strerror_r(errno, ebuf, sizeof(ebuf));
+      fprintf(stderr, "remote:inet_pton => %s\n", ebuf);
+      exit(1);
+    }
+  }
+
+  client_sock = socket(AF_INET, SOCK_STREAM, 0);
+  if (client_sock < 0) {
+    strerror_r(errno, ebuf, sizeof(ebuf));
+    fprintf(stderr, "client_sock:socket => %s\n", ebuf);
+    exit(1);
+  }
+
+  r = connect(client_sock, (struct sockaddr*) &remote, sizeof(remote));
+  if (r != 0) {
+    strerror_r(errno, ebuf, sizeof(ebuf));
+    fprintf(stderr, "client_sock:connect => %s\n", ebuf);
+    free(hammer_time.msg);
+    exit(1);
+  }
+
+
+
   if (pcap_lookupnet(dev, &net, &mask, errbuf) == -1) {
     fprintf(stderr, "Can't get netmask for device %s\n", dev);
     net = 0;
     mask = 0;
   }
 
-  handle = pcap_open_live(dev, 1000, 0, 1000, errbuf);
+  handle = pcap_open_live(dev, 1000, 0, 10, errbuf);
   if (handle == NULL) {
     fprintf(stderr, "Couldn't open device %s: %s\n", dev, errbuf);
     return(2);

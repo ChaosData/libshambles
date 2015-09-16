@@ -43,6 +43,42 @@ int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd, uint32_t 
   pkt_data_dump(_pd);
   #endif
 
+
+
+
+  //sleep(1);
+
+  char inner_addr_str[16] = {0};
+  inet_ntoa_r(inner_addr_str, _inner_addr);
+
+  char outer_addr_str[16] = {0};
+  inet_ntoa_r(outer_addr_str, _outer_addr);
+
+
+  char dst_addr[16] = {0};
+  inet_ntoa_r(dst_addr, _pd->dst_addr);
+
+  char src_addr[16] = {0};
+  inet_ntoa_r(src_addr, _pd->src_addr);
+
+
+  DEBUG_printf("Deleting old conntrack entry.");
+
+  int32_t delret = conntrack_delete_ipv4_tcp(_pd->src_addr, _pd->dst_addr,
+                                             _pd->src_port, _pd->dst_port,
+                                             _pd->dst_port, _pd->src_port,
+                                             _pd->dst_addr, _outer_addr);
+  if (delret != 1) {
+    printf("%d\n", delret);
+    return -3;
+  }
+
+
+
+
+
+
+
   struct tcp_state *fake_server;
   struct tcp_state *fake_client;
 
@@ -87,40 +123,14 @@ int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd, uint32_t 
     free(fake_client);
     return -2;
   }
-  free(fake_server);
-  free(fake_client);
-
-  sleep(1);
-
-  char inner_addr_str[16] = {0};
-  inet_ntoa_r(inner_addr_str, _inner_addr);
-
-  char outer_addr_str[16] = {0};
-  inet_ntoa_r(outer_addr_str, _outer_addr);
 
 
-  char dst_addr[16] = {0};
-  inet_ntoa_r(dst_addr, _pd->dst_addr);
-
-  char src_addr[16] = {0};
-  inet_ntoa_r(src_addr, _pd->src_addr);
 
 
-  DEBUG_printf("Deleting old conntrack entry.");
 
-  int32_t delret = conntrack_delete_ipv4_tcp(_pd->src_addr, _pd->dst_addr,
-                                             _pd->src_port, _pd->dst_port,
-                                             _pd->dst_port, _pd->src_port,
-                                             _pd->dst_addr, _outer_addr);
-  if (delret != 1) {
-    printf("%d\n", delret);
-    close(server_sock);
-    close(client_sock);
-    return -3;
-  }
+
 
   DEBUG_printf("Injecting new conntrack entries.");
-
   int32_t injret = conntrack_inject_ipv4_tcp(_outer_addr, _pd->dst_addr,
                                              _pd->src_port, _pd->dst_port,
                                              _pd->dst_addr, _outer_addr,
@@ -131,6 +141,7 @@ int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd, uint32_t 
     close(client_sock);
     return -4;
   }
+
 
   char dnat_command[dnat_size] = {0};
   snprintf(dnat_command, dnat_size, dnat, 'A', src_addr, ntohs(_pd->src_port), dst_addr, ntohs(_pd->dst_port), inner_addr_str, ntohs(_pd->dst_port));
@@ -147,6 +158,8 @@ int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd, uint32_t 
   _out->outer_sock = server_sock;
   _out->inner_sock = client_sock;
 
+  free(fake_server);
+  free(fake_client);
   return 1;
 }
 

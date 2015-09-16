@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
+#include <sys/time.h>
+#include <time.h>
 
 #include <unistd.h>
 #include <sys/capability.h>
@@ -193,6 +195,18 @@ int8_t onPktDataReceived(uv_stream_t* sock, pkt_data_t* pdt) noexcept {
 
 void onRead(uv_stream_t* sock, ssize_t nread, const uv_buf_t *buf) noexcept {
   DEBUG_printf("%s\n", __func__ );
+
+  #ifdef DEBUG
+  struct timeval tv;
+
+  gettimeofday(&tv, NULL);
+
+  unsigned long long millisecondsSinceEpoch =
+    (unsigned long long)(tv.tv_sec) * 1000 +
+    (unsigned long long)(tv.tv_usec) / 1000;
+
+  printf("milliseconds: %llu\n", millisecondsSinceEpoch);
+  #endif
 
   if (nread < 0) {
     if (nread != UV_EOF) {
