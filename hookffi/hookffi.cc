@@ -84,7 +84,8 @@ int8_t allow_user(char const * const _path, char const * const _user) {
   if(pid >= 0) {
     if(pid == 0) { //child
       std::string acl = "u:" + uname + ":rwx";
-      const char* const execve_argv[] = {"setfacl", "-m", acl.c_str(), _path, nullptr};
+      const char* const execve_argv[] = { "setfacl", "-m", acl.c_str(), _path,
+                                          nullptr };
 
       execve("/bin/setfacl", const_cast<char *const *>(execve_argv), nullptr);
     }
@@ -97,7 +98,7 @@ int8_t allow_user(char const * const _path, char const * const _user) {
 }
 
 int8_t register_hook(hook_cb* _hcb) {
-  DEBUG_printf("%s\n", __func__);
+  DEBUG_printf("%s: _hcb: %p\n", __func__, _hcb);
 
   callback = _hcb;
   return 0;
@@ -118,21 +119,23 @@ int8_t start(int _fd, uds_data_t* _data) {
 
   struct sockaddr_un remote;
   int len = sizeof(struct sockaddr_un);
+
   int pid = 0;
   while (true) {
 
     int peer = accept(_fd, (struct sockaddr*)&remote, (socklen_t *)&len);
     DEBUG_printf("peer: %d\n", peer);
     
-    pid = fork();
+
+    pid = fork(); // https://github.com/ffi/ffi/issues/241
     if (pid == -1) {
+      fprintf(stderr, "Something bad happened.\n");
       close(peer);
       continue;
     } else if (pid > 0) {
       close(peer);
       continue;
     }
-    
 
     int sent_fd[2];
     struct msghdr message;
@@ -177,9 +180,12 @@ int8_t start(int _fd, uds_data_t* _data) {
       }
     }
 
+    DEBUG_printf("outer_sock: %d, inner_sock: %d\n", sent_fd[0], sent_fd[1]);
+
     _data->outer_sock = sent_fd[0];
     _data->inner_sock = sent_fd[1];
     _data->uds_client = peer;
+    DEBUG_printf("calling callback\n");
     (*callback)(_data);
   }
   return 1;
