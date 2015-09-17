@@ -2,7 +2,7 @@
 
 For a while now, I've been dealing with some highly complex and dynamic
 protocols, several of which are used in distributed systems and peer-to-peer
-networks. One thing that was a big hinderance in testing these protocols was
+networks. One thing that was a big hindrance in testing these protocols was
 the fact that many of the important connections may appear somewhat random due
 to the use of more secure communications to transfer host/peer connection
 metadata. In particular, some protocols don't directly use TLS or perform TLS
@@ -35,7 +35,8 @@ probably more work than building one in the first place. But I digress, nothing
 is fundamentally wrong with these, and they both have their pros and cons.
 
 At its core, libshambles relies on a kernel module
-([https://github.com/ewust/forge_socket]) to inject fake socket data into the
+([https://github.com/ewust/forge_socket](https://github.com/ewust/forge_socket))
+to inject fake socket data into the
 kernel's TCP state. This then tricks the OS into recognizing packets from a
 targeted stream as being for it. There's a little more magic to it than that
 that involves manipulating the netfilter connection tracking state and adding
@@ -54,12 +55,12 @@ instead of doing it this way. Of course, they chose to leverage a different
 sort of global adversary
 [architecture](https://www.eff.org/files/2014/04/09/20140312-intercept-quantum_insert_diagrams.pdf)
 that probably isn't super conducive to the way libshambles works; and they
-don't appear to use it to go after anything but plaintext HTTP.
+supposedly just use it to go after plaintext HTTP.
 
 However, libshambles does have its benefits. Unlike, QUANTUM INSERT, which
 is
 [trivially detectable](http://blog.fox-it.com/2015/04/20/deep-dive-into-quantum-insert/)
-due to the victim receing two different packets packets vying for the next spot
+due to the victim receiving two different packets packets vying for the next spot
 in the stream, libshambles is theoretically *much* harder to detect. If you
 have an infrastructure where you can ensure that the hosts' packets always
 route through the libshambles interceptor host, you can generally ensure that
@@ -80,13 +81,13 @@ no extraneous packets are received by either host.
 # Future Work
 - FreeBSD support
   - port forge_socket to FreeBSD
-  - implement analagous connection tracking stuff
+  - implement analogous connection tracking stuff
   - convert firewall rules
     - likely support IPFW, FreeBSD's pf is more limited for these things
 - Integration with highly advanced pcap daemons (e.g. [Net Sensor](https://isis.poly.edu/~bk/netsensor/))
 - Detection/Anti-Detection
   - profile TCP for options differences
-    - do full tcp copy
+    - do full TCP copy
   - profile connection for implementation differences (e.g. why did the host stop
     speaking TCP like OpenBSD and why is it now speaking TCP like Linux?)
     - ??
