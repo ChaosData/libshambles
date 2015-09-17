@@ -1,4 +1,4 @@
-# libshambles: Hooking Established TCP Connections
+Title: libshambles: Efficiently Hooking Established TCP Connections
 
 For a while now, I've been dealing with some highly complex and dynamic
 protocols, several of which are used in distributed systems and peer-to-peer
@@ -24,7 +24,6 @@ hosts of the targeted stream.
 
 
 # Concept
-
 libshambles is one of two core approaches to at-scale traffic interception,
 though both are essentially the same. You can either build a TCP reassembly
 engine on top of libpcap or you can try to leverage the one in your OS. I
@@ -70,7 +69,6 @@ no extraneous packets are received by either host.
 
 
 # Architecture
-
 libshambles is designed as a simple library that just performs the connection
 intercept to generate a split-stream socket pair. It is intended to be as
 general and simple a library as possible to enable the creation of all manner
@@ -93,11 +91,53 @@ is included in the
 directory of the repo.
 
 ## libshambles Interceptor
+In addition to (or as part of) a traffic scanner, libshambles itself needs to
+be used by some process on the router that has the `CAP_NET_ADMIN` and
+`CAP_NET_RAW` capabilities. In theory, such a program could be implemented in
+just about any manner and the design will likely be dictated primarily by
+the design of the chosen architecture... and maybe taste. As part of the
+libshambles release, I've included a sample interceptor in
+[samples/shambles](FILLIN) that is libuv-based. A threaded implementation might
+in-general have lower latency on the data submission from a PCAP listener to
+the interceptor, but I haven't specifically tried to optimize the sample
+toolchain.
 
 ## Protocol-Specific Proxy
+libshambles contains code to pass the forged sockets to a separate process via
+Unix domain sockets. What you pass them to is up to you as long as it's on the
+same host. Within
+[samples/hookscripts](fillin),
+I've included a shared library and some scripts (Python/ctypes and Ruby/ffi)
+that wrap the library to create in-language socket objects from the passed file
+descriptors. For my own sanity, I've implemented the shared library to run a
+forking Unix domain socket daemon, but this is mostly for simplicity.
+
+For architectures where on-router must be kept to an even smaller minimum,
+using a native Unix domain socket-to-TCP bridge and forwarding traffic to a
+separate host will likely be more performant.
 
 
 # Using libshambles
+
+## Performance Hearsay
+
+I don't have a bunch of fancy, but likely misleading, numbers/graphs to display
+here, but I can say that I'm currently able to race echo servers when the
+"signaling" packet is sent from the internal network to an outside host. When
+it's the outside host that sends the flagging packet, I lose the race (causing
+a somewhat detectable double packet event), but I'm still able to get the
+internal host onto my socket. They will just only ignore the first several
+bytes (specifically the payload size of the "winning" legitimate packet) of the
+and read in the following bytes as part of its `recv(2)`. This can probably be
+beaten using one or multiple of the following:
+- using better hardware (I'm literally running this in a VM where the external
+  interface is bridged to a gigabit NIC and the internal interface is a 10/100
+  USB NIC out to a separate physical machine).
+- introducing an artificial delay between the external and internal interface
+  (on my current setup, I'm losing the "race" at the sub-millisecond scale, so
+  5-10ms of delay is probably a pretty sizable breathing room).
+- configure your PCAP listener to be slightly more protocol aware and tweak the
+  SEQ/ACK numbers to account for being unable to win the race.
 
 # Future Work
 - FreeBSD support
