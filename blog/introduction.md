@@ -136,7 +136,7 @@ key is available [here](https://isecpartners.github.io/keys/jdileo.asc)).
 
 ## Performance Hearsay
 
-I don't have a bunch of fancy, but likely misleading, numbers/graphs to display
+I don't have a bunch of fancy, and likely misleading, numbers/graphs to display
 here, but I can say that I'm currently able to race echo servers when the
 "signaling" packet is sent from the internal network to an outside host. When
 it's the outside host that sends the flagging packet, I lose the race (causing
@@ -155,13 +155,29 @@ beaten using one or multiple of the following:
   SEQ/ACK numbers to account for being unable to win the race.
 
 # Future Work
+
+Based on the results I've been able to achieve so far with libshambles, there
+are definitely a few things I have in mind to add/implement in future versions.
+Primarily, these include FreeBSD support (which will likely require creating a
+`forge_socket`-alike among other changes to support the different firewall
+stack) and researching weaknesses in the design (and more specifically the
+current implementation) from a detection perspective. There are likely some
+shell games to be played with identifying subtleties in TCP engine differences
+between different operating systems and (especially) non-connection breaking
+changes to packet fields/socket state like window sizes, which are not
+currently being copied into the forged sockets. I'll also try to see if I can
+integrate it (or at least a libshambles client) into the venerable
+[Net Sensor](https://isis.poly.edu/~bk/netsensor/) codebase.
+
+
+# Non-public:
 - FreeBSD support
     - port forge_socket to FreeBSD
     - implement analogous connection tracking stuff
     - convert firewall rules
         - likely support IPFW, FreeBSD's pf is more limited for these things
 
-- Integration with highly advanced pcap daemons
+- Integration with highly advanced PCAP daemons
   (e.g. [Net Sensor](https://isis.poly.edu/~bk/netsensor/))
 
 - Detection/Anti-Detection
