@@ -46,8 +46,10 @@ libshambles will likely occur in the protocol signature/traffic recognizer code
 that passes the necessary connection information to libshambles.
 
 While I'm not sure if this is all that innovative, I did try to find other
-projects that behaved similarly, but I came up dry. Heck, even the NSA copped
-out and apparently implemented a
+projects that behaved similarly, but I came up dry.
+[Divert sockets](https://www.freebsd.org/cgi/man.cgi?query=divert)
+operate at the individual packet level and provide no stream abstractions as
+part of their API. Heck, even the NSA copped out and apparently implemented a
 [racing](http://blog.fox-it.com/2015/04/20/deep-dive-into-quantum-insert/)
 [packet](http://arstechnica.com/information-technology/2013/11/quantum-of-pwnness-how-nsa-and-gchq-hacked-opec-and-others/)
 [injector](https://www.schneier.com/blog/archives/2013/10/how_the_nsa_att.html)
@@ -69,7 +71,26 @@ no extraneous packets are received by either host.
 
 # Architecture
 
+libshambles is designed as a simple library that just performs the connection
+intercept to generate a split-stream socket pair. It is intended to be as
+general and simple a library as possible to enable the creation of all manner
+of tools and frameworks. In general, however, libshambles is designed to easily
+allow the use of privilege minimization and separation, and sandboxing
+techniques and technologies.
+
 ## Traffic Scanner
+libshambles is designed to enable the high-performance requirements of a SPAN
+port listening PCAP daemon that performs traffic analysis. In these situations,
+the listener itself does not operate on a system that can prevent the
+"interesting" packets from passing through the router. However, libshambles
+would work just as well on a non-10/40Gbit router that uses divert sockets as
+a means to stop the "interesting" packets from even reaching the intended host.
+However, regardless of the architecture used, **something** needs to pass the
+TCP connection data (including the SEQ/ACK numbers) to libshambles. A very
+simple PCAP listener that communicates with the sample libshambles interceptor
+is included in the
+[`samples/scan`](FILLIN)
+directory of the repo.
 
 ## libshambles Interceptor
 
@@ -91,4 +112,4 @@ no extraneous packets are received by either host.
   - profile connection for implementation differences (e.g. why did the host stop
     speaking TCP like OpenBSD and why is it now speaking TCP like Linux?)
     - ??
-
+- Modifying DPDK or netmap TCP engines to perform similar functionality
