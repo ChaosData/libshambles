@@ -119,6 +119,20 @@ separate host will likely be more performant.
 
 # Using libshambles
 
+Well... that's up to you, but the general guidelines listed above are meant to
+help. libshambles on its own, doesn't do a heck of a lot, and it requires all
+sorts of other tooling to be in place to even use it. That's mostly why I've
+included the sample toolchain, because I don't expect anyone to jump through 6
+more hoops just to play with the code. So while you should feel free to hack on
+the samples, they're meant to be simple (ok, the libuv one is complicated, but
+that's mostly because it's evented) and hackable, and probably are not any sort
+of production ready. But if you happen to find any bugs in the little
+functionality that is implemented in the samples, please create an issue (and
+maybe even a pull request if you have the time). If you happen to find any
+security vulnerabilities, please drop me a line at `jeff.dileo@nccgroup.trust`
+(my PGP key is available
+[here](https://isecpartners.github.io/keys/jdileo.asc)).
+
 ## Performance Hearsay
 
 I don't have a bunch of fancy, but likely misleading, numbers/graphs to display
