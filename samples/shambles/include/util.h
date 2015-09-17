@@ -1,10 +1,7 @@
-#ifndef LIBINTERCEPT_UTIL_H_
-#define LIBINTERCEPT_UTIL_H_
+#ifndef LIBSHAMBLES_UTIL_H_
+#define LIBSHAMBLES_UTIL_H_
 
 #include <stdint.h>
-
-#include "libforge_socket/libforge_socket.h"
-#include "libintercept.h"
 
 #ifdef DEBUG
   #define DEBUG_printf(...) fprintf(stderr, __VA_ARGS__)
@@ -29,9 +26,5 @@ char* inet_htoa_r(char* buf, uint32_t haddr);
 */
 char* inet_ntoa_r(char* buf, uint32_t haddr);
 
-void hexdump(uint8_t const * const _data, uint16_t const _data_len);
-void tcp_state_dump(tcp_state_t const * const _st);
-void pkt_data_dump(pkt_data_t const * const _pd);
-//void hook_data_dump(hook_data_t const * const _hdt);
 
 #endif

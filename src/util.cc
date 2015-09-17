@@ -1,9 +1,10 @@
+#include "util.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <arpa/inet.h>
 
 
-#include "util.h"
 
 
 uint8_t parse_ipv4(const char* str, uint64_t len){

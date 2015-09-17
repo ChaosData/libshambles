@@ -3,7 +3,7 @@ import sys
 import socket
 import time
 
-libName = './hookffi.so'
+libName = './lib/hookffi.so'
 hookffi = CDLL(libName)
 
 class uds_data(Structure):

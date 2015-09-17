@@ -1,3 +1,5 @@
+#include "shambles.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -5,7 +7,6 @@
 
 #include <errno.h>
 #include <unistd.h>
-#include <pcap.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -15,38 +16,32 @@
 #include <netinet/ip6.h>
 #include <netinet/tcp.h>
 
-#include "util.h"
-#include "libintercept.h"
-#include "libforge_socket/libforge_socket.h"
+#include <pcap.h>
 
+#include "libforge_socket_override/libforge_socket.h"
 #include "conntrack.h"
+#include "util.h"
 
 constexpr static char const dnat[] = "iptables -t nat -%c PREROUTING -m state --state INVALID,NEW,RELATED,ESTABLISHED -p tcp -s %s --sport %hu -d %s --dport %hu -j DNAT --to-destination %s:%hu";
-constexpr static uint16_t dnat_size = sizeof(dnat)    - 1                                                                     + 14         + 3  + 14         + 3                        + 14 + 3;
+constexpr static uint16_t dnat_size = sizeof(dnat)    - 1                                                                     + 14         + 2  + 14         + 2                        + 14 + 2;
 
 
 constexpr static char const snat[] = "iptables -t nat -%c POSTROUTING -m state --state INVALID,NEW,RELATED,ESTABLISHED -p tcp -s %s --sport %hu -d %s --dport %hu -j SNAT --to-source %s:%hu";
-constexpr static uint16_t snat_size = sizeof(snat)    - 1                                                                      + 14         + 3  + 14         + 3                   + 14 + 3;
-
+constexpr static uint16_t snat_size = sizeof(snat)    - 1                                                                      + 14         + 2  + 14         + 2                   + 14 + 2;
 
 //constexpr static char const conntrackD[] = "conntrack -D --orig-src %s --orig-dst %s -p tcp --orig-port-src %hu --orig-port-dst %hu --reply-port-src %hu --reply-port-dst %hu --reply-src %s --reply-dst %s";
-//constexpr static uint16_t conntrackD_size = sizeof(conntrackD)    + 13          + 13                        + 3                 + 3                  + 3                  + 3           + 13           + 13;
-
+//constexpr static uint16_t conntrackD_size = sizeof(conntrackD)    + 13          + 13                        + 2                 + 2                  + 2                  + 2           + 13           + 13;
 
 //constexpr static char const conntrackI[] = "conntrack -I --orig-src %s --orig-dst %s -p tcp --orig-port-src %hu --orig-port-dst %hu --reply-port-src %hu --reply-port-dst %hu --reply-src %s --reply-dst %s --timeout 60 --state ESTABLISHED";
-//constexpr static uint16_t conntrackI_size = sizeof(conntrackI)    + 13          + 13                        + 3                 + 3                  + 3                  + 3           + 13           + 13;
+//constexpr static uint16_t conntrackI_size = sizeof(conntrackI)    + 13          + 13                        + 2                 + 2                  + 2                  + 2           + 13           + 13;
 
 
-int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd, uint32_t const _outer_addr, uint32_t const _inner_addr) {
+int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd,
+                 uint32_t const _outer_addr, uint32_t const _inner_addr) {
   DEBUG_printf("%s\n", __func__);
   #ifdef DEBUG
   pkt_data_dump(_pd);
   #endif
-
-
-
-
-  //sleep(1);
 
   char inner_addr_str[16] = {0};
   inet_ntoa_r(inner_addr_str, _inner_addr);
@@ -86,13 +81,19 @@ int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd, uint32_t 
 
 
   char dnat_command[dnat_size] = {0};
-  snprintf(dnat_command, dnat_size, dnat, 'A', src_addr, ntohs(_pd->src_port), dst_addr, ntohs(_pd->dst_port), inner_addr_str, ntohs(_pd->dst_port));
+  snprintf(dnat_command, dnat_size, dnat,
+    'A', src_addr, ntohs(_pd->src_port), dst_addr, ntohs(_pd->dst_port),
+    inner_addr_str, ntohs(_pd->dst_port)
+  );
   DEBUG_printf("# %s\n", dnat_command);
   system(dnat_command);
 
 
   char snat_command[snat_size] = {0};
-  snprintf(snat_command, snat_size, snat, 'A', inner_addr_str, ntohs(_pd->dst_port), src_addr, ntohs(_pd->src_port), dst_addr, ntohs(_pd->dst_port));
+  snprintf(snat_command, snat_size, snat,
+    'A', inner_addr_str, ntohs(_pd->dst_port), src_addr, ntohs(_pd->src_port),
+    dst_addr, ntohs(_pd->dst_port)
+  );
   DEBUG_printf("# %s\n", snat_command);
   system(snat_command);
 
@@ -153,38 +154,10 @@ int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd, uint32_t 
   return 1;
 }
 
-/*
-  printf("sending/receiving...\n");
-  printf("server_sock: %x, client_sock: %x\n", server_sock, client_sock);
 
-  int r = 0;
-  char rec[1028] = {0};
-
-  puts("recv'ing from server:");
-  r = recv(server_sock, rec, sizeof(rec), 0);
-  printf("GOT (server): %s\n", rec);
-  char imsg[] = "FAREWELL SERVER!\n";
-  r = send(server_sock, imsg, strlen(imsg), 0);
-  printf("server send: %d\n", r);
-  close(server_sock);
-
-  memset(rec, 0, sizeof(rec));
-
-  puts("recv'ing from client:");
-  r = recv(client_sock, rec, sizeof(rec), 0);
-  printf("GOT (client): %s\n", rec);
-  char imsg2[] = "GOODBYE CLIENT !!\n";
-  r = send(client_sock, imsg2, strlen(imsg2), 0);
-  printf("client send: %d\n", r);
-
-  close(client_sock);
-
-
-
-  sleep(1);
-*/
-
-int8_t intercept_teardown(pkt_data_t const * const _pd, uint32_t const _outer_addr, uint32_t const _inner_addr) {
+int8_t intercept_teardown(pkt_data_t const * const _pd,
+                          uint32_t const _outer_addr,
+                          uint32_t const _inner_addr) {
   DEBUG_printf("%s\n", __func__);
   
   char inner_addr_str[16] = {0};
@@ -201,16 +174,21 @@ int8_t intercept_teardown(pkt_data_t const * const _pd, uint32_t const _outer_ad
   inet_ntoa_r(src_addr, _pd->src_addr);
 
   char dnat_command[dnat_size] = {0};
-  snprintf(dnat_command, dnat_size, dnat, 'D', src_addr, ntohs(_pd->src_port), dst_addr, ntohs(_pd->dst_port), inner_addr_str, ntohs(_pd->dst_port));
+  snprintf(dnat_command, dnat_size, dnat,
+    'D', src_addr, ntohs(_pd->src_port), dst_addr, ntohs(_pd->dst_port),
+    inner_addr_str, ntohs(_pd->dst_port)
+  );
   DEBUG_printf("# %s\n", dnat_command);
   system(dnat_command);
 
   char snat_command[snat_size] = {0};
-  snprintf(snat_command, snat_size, snat, 'D', inner_addr_str, ntohs(_pd->dst_port), src_addr, ntohs(_pd->src_port), dst_addr, ntohs(_pd->dst_port));
+  snprintf(snat_command, snat_size, snat,
+    'D', inner_addr_str, ntohs(_pd->dst_port), src_addr, ntohs(_pd->src_port),
+    dst_addr, ntohs(_pd->dst_port)
+  );
   DEBUG_printf("# %s\n", snat_command);
   system(snat_command);
   
-
   return 0;
 }
 

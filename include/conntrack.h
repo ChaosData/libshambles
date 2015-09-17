@@ -1,5 +1,5 @@
-#ifndef LIBINTERCEPT_CONNTRACK_H_
-#define LIBINTERCEPT_CONNTRACK_H_
+#ifndef LIBSHAMBLES_CONNTRACK_H_
+#define LIBSHAMBLES_CONNTRACK_H_
 
 
 // ip addresses are struct in_addr (aka uint32_t in network byte order)

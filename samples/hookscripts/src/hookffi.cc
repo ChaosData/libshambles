@@ -98,7 +98,7 @@ int8_t allow_user(char const * const _path, char const * const _user) {
 }
 
 int8_t register_hook(hook_cb* _hcb) {
-  DEBUG_printf("%s: _hcb: %p\n", __func__, _hcb);
+  DEBUG_printf("%s: _hcb: %p\n", __func__, (void*)_hcb);
 
   callback = _hcb;
   return 0;
@@ -113,7 +113,7 @@ void cleanup(int sig) noexcept {
 }
 
 int8_t start(int _fd, uds_data_t* _data) {
-  DEBUG_printf("%s: _fd:%d, _data:%p\n", __func__, _fd, _data);
+  DEBUG_printf("%s: _fd:%d, _data:%p\n", __func__, _fd, (void*)_data);
 
   signal(SIGINT, cleanup);
 

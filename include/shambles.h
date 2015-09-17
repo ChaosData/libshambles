@@ -1,6 +1,7 @@
-#ifndef LIBINTERCEPT_LIBINTERCEPT_H_
-#define LIBINTERCEPT_LIBINTERCEPT_H_
+#ifndef LIBSHAMBLES_SHAMBLES_H_
+#define LIBSHAMBLES_SHAMBLES_H_
 
+#include <stdlib.h>
 #include <stdint.h>
 
 extern "C" {

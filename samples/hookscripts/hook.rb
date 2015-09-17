@@ -3,7 +3,7 @@ require 'socket'
 
 module Hookffi
   extend FFI::Library
-  ffi_lib "./hookffi.so"
+  ffi_lib "./lib/hookffi.so"
   class UdsData < FFI::Struct
     layout :outer_sock, :int,
            :inner_sock, :int,

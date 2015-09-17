@@ -1,9 +1,9 @@
-#ifndef FORGE_SOCKET_H
-#define FORGE_SOCKET_H
-#include "forge_socket.h"
+#ifndef LIBSHAMBLES_LIBFORGE_SOCKET_OVERRIDE_FORGE_SOCKET_H_
+#define LIBSHAMBLES_LIBFORGE_SOCKET_OVERRIDE_FORGE_SOCKET_H_
 
+#include <forge_socket/forge_socket.h>
+#include <forge_socket/tests/libforge_socket.h>
 
-struct tcp_state *forge_socket_get_default_state();
-int forge_socket_set_state(int sock, struct tcp_state *st);
+typedef struct tcp_state tcp_state_t;
 
 #endif

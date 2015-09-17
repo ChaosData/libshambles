@@ -1,5 +1,5 @@
-#define _POSIX_C_SOURCE 200112L
-#define _BSD_SOURCE 1
+//#define _POSIX_C_SOURCE 200112L
+//#define _BSD_SOURCE 1
 
 typedef unsigned int u_int;
 typedef unsigned short u_short;
@@ -30,9 +30,7 @@ typedef unsigned char u_char;
 #include <string>
 #include <regex>
 
-
-#include "libintercept.h"
-
+#include <shambles.h>
 
 #ifdef DEBUG
   #define DEBUG_printf(...) fprintf(stderr, __VA_ARGS__)
@@ -189,8 +187,9 @@ void eth_handler(uint8_t* user, const struct pcap_pkthdr* pkthdr, const uint8_t*
 int main(int argc, char const *argv[]) {
 
   if (argc != 6) {
-    fprintf(stderr, "Usage: ./%s <device> <bpf filter> <regex signature> "
+    fprintf(stderr, "Usage: %s <device> <bpf filter> <regex signature> "
                     "<interceptor host> <interceptor port>\n", argv[0]);
+    return -1;
   }
 
   pcap_t *handle;   /* Session handle */

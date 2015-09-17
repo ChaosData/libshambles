@@ -1,10 +1,10 @@
-#ifndef LIBINTERCEPT_UTIL_H_
-#define LIBINTERCEPT_UTIL_H_
+#ifndef LIBSHAMBLES_UTIL_H_
+#define LIBSHAMBLES_UTIL_H_
 
 #include <stdint.h>
 
-#include "libforge_socket/libforge_socket.h"
-#include "libintercept.h"
+#include "shambles.h"
+#include "libforge_socket_override/libforge_socket.h"
 
 #ifdef DEBUG
   #define DEBUG_printf(...) fprintf(stderr, __VA_ARGS__)
