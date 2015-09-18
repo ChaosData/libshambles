@@ -1,5 +1,18 @@
-// Modified from https://github.com/ewust/forge_socket/blob/d02a284484defec31b2d99347dde4de358d82a8e/tests/libforge_socket.c
-// License: (GPLv2) https://github.com/ewust/forge_socket/blob/d02a284484defec31b2d99347dde4de358d82a8e/LICENSE
+/*
+ *  This file is a modified version of: https://github.com/ewust/forge_socket/blob/d02a284484defec31b2d99347dde4de358d82a8e/tests/libforge_socket.c
+ *  The original license may be obtained here: https://github.com/ewust/forge_socket/blob/d02a284484defec31b2d99347dde4de358d82a8e/LICENSE
+ *
+ *  Copyright (C) 2014 Eric Wustrow
+ *  Copyright (C) 2015 TODO
+ *
+ *  Authors: Eric Wustrow <ewust@umich.edu>
+ *           Jeff Dileo <jeff.dileo@nccgroup.trust>
+ *
+ *  This program is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU General Public License as
+ *  published by the Free Software Foundation, version 2 of the
+ *  License.
+ */
 
 #include "libforge_socket_override/libforge_socket.h"
 
