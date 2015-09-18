@@ -3,7 +3,7 @@
 libshambles is a TCP interception library that hooks established TCP streams
 and provides `send(2)`/`recv(2)`-able socket interfaces to communicate with the
 connection's peers. It was primarily developed to intercept highly dynamic
-network protocols at scale.
+network protocols at scale. 
 
 libshambles is designed to be minimal and allow the use of privilege
 minimization and separation, and sandboxing techniques and technologies. Once
@@ -21,6 +21,10 @@ libshambles is written in C++ (compiled as C++14), but exports its public API
 bindings as C. It is mostly released under the two-clause BSD license, but due
 to its current dependence on a Linux kernel module and netfilter, compiled
 binaries will be encumbered by the GPLv2.
+
+See
+[https://www.nccgroup.trust/us/about-us/newsroom-and-events/blog/FILLIN](https://www.nccgroup.trust/us/about-us/newsroom-and-events/blog/FILLIN)
+for my blog post introducing libshambles and the rationale behind it.
 
 # Quickstart
 
@@ -44,7 +48,7 @@ $ cd ../../
 $ make
 ```
 
-### Setup libuv, and compile and run the `shambles` daemon:
+#### Setup libuv, and compile and run the `shambles` daemon:
 ```bash
 $ cd /path/to/libshambles
 $ cd samples/shambles
@@ -54,7 +58,7 @@ $ mkdir /tmp/shambles
 $ sudo ./shambles <external IP> <internal IP> <LAN netmask> /tmp/shambles/shambles_sock
 ```
 
-### Compile and run the `scan` daemon:
+#### Compile and run the `scan` daemon:
 ```bash
 $ cd /path/to/libshambles
 $ cd samples/scan
@@ -62,7 +66,7 @@ $ make
 $ sudo ./scan <internal interface> '<bpf filter>' '<search regex>' '127.0.0.1' '5555'
 ```
 
-### Compile the `hookffi` shared library, and use Python to hook stuff:
+#### Compile the `hookffi` shared library, and use Python to hook stuff:
 ```bash
 $ cd /path/to/libshambles
 $ cd samples/hookffi
@@ -101,3 +105,36 @@ extract it out to `/opt/clangllvm` on my machine and then prepend that to my
 `$PATH`, but do as you like.
 
 Other dependencies are covered in the above quickstart instructions.
+
+
+# Future Work
+
+- FreeBSD support:
+    - port forge_socket to FreeBSD
+    - implement analogous connection tracking stuff
+    - convert firewall rules
+        - likely support IPFW, FreeBSD's pf is more limited for these things
+    - refactor to more cleanly separate out GPL-encumbered code and try hard to
+      avoid `#ifdef` hell
+
+- Integration with highly advanced PCAP daemons
+  (e.g. [Net Sensor](https://isis.poly.edu/~bk/netsensor/))
+
+- Detection/Anti-Detection research
+    - Profile TCP for options differences
+        - Perform better TCP state forgery to eliminate obvious differences
+    - Profile connections for midstream implementation differences (e.g. why
+      did the host/client stop speaking TCP like X and why is it now speaking
+      TCP like Linux?)
+        - Research mitigations
+
+- (Wishful thinking) Modifying the DPDK/netmap TCP engines to perform similar
+  functionality
+
+
+# Contributing & Bug Reporting
+
+Feel free to send pull requests or even just add an issue if you spot a bug (or
+would like to make a feature request). If you happen to find any security
+issues, please drop me a line at `jeff.dileo@nccgroup.trust` (my PGP key is
+available [here](https://isecpartners.github.io/keys/jdileo.asc)).
