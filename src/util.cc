@@ -31,8 +31,6 @@
 #include <arpa/inet.h>
 
 
-
-
 uint8_t parse_ipv4(const char* str, uint64_t len){
   uint8_t digits = 0;
   uint8_t vals[3] = { 0,0,0 };
