@@ -32,7 +32,7 @@ libshambles, and Python/Ruby scripts wrapping a native (C++14) file descriptor
 accepting daemon. These tools are provided in the `samples` directory. You'll
 probably want to run the following across three separate terminal sessions:
 
-### Compile and load the `forge_socket` kernel module, and build libshambles:
+#### Compile and load the `forge_socket` kernel module, and build libshambles:
 ```bash
 $ git clone <FILL IN>/libshambles
 $ git submodule init
@@ -44,7 +44,7 @@ $ cd ../../
 $ make
 ```
 
-### Setup libuv, and compile and run the `shambles` daemon
+### Setup libuv, and compile and run the `shambles` daemon:
 ```bash
 $ cd /path/to/libshambles
 $ cd samples/shambles
@@ -54,7 +54,7 @@ $ mkdir /tmp/shambles
 $ sudo ./shambles <external IP> <internal IP> <LAN netmask> /tmp/shambles/shambles_sock
 ```
 
-### Compile and run the `scan` daemon
+### Compile and run the `scan` daemon:
 ```bash
 $ cd /path/to/libshambles
 $ cd samples/scan
@@ -62,7 +62,7 @@ $ make
 $ sudo ./scan <internal interface> '<bpf filter>' '<search regex>' '127.0.0.1' '5555'
 ```
 
-### Compile the `hookffi` shared library, and use Python to hook stuff
+### Compile the `hookffi` shared library, and use Python to hook stuff:
 ```bash
 $ cd /path/to/libshambles
 $ cd samples/hookffi
@@ -77,10 +77,10 @@ If Ruby is more your thing than Python, edit the `custom_hook` method in
 $ ruby hook.rb /tmp/shambles/shambles_sock root
 ```
 
-Next, try using a plaintext TCP connection that will match both the bpf filter
-and search regex passed to the `scan` daemon, and observe that your python code
-will intercept the connection and read and write whatever your wanted to either
-side of the stream.
+Next, make a plaintext TCP connection from a host behind the one running
+the sample tools (and out to a remote host) that will match both the bpf filter
+and search regex passed to the `scan` daemon. Observe that your code will
+hook the connection and read and write to both the local client and remote host.
 
 
 # Dependencies
