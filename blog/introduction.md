@@ -169,23 +169,3 @@ currently being copied into the forged sockets. I'll also try to see if I can
 integrate it (or at least a libshambles client) into the venerable
 [Net Sensor](https://isis.poly.edu/~bk/netsensor/) codebase.
 
-
-# Non-public:
-- FreeBSD support
-    - port forge_socket to FreeBSD
-    - implement analogous connection tracking stuff
-    - convert firewall rules
-        - likely support IPFW, FreeBSD's pf is more limited for these things
-
-- Integration with highly advanced PCAP daemons
-  (e.g. [Net Sensor](https://isis.poly.edu/~bk/netsensor/))
-
-- Detection/Anti-Detection
-    - profile TCP for options differences
-        - do full TCP copy
-    - profile connection for implementation differences (e.g. why did the host
-      stop speaking TCP like OpenBSD and why is it now speaking TCP like
-      Linux?)
-        - ??
-
-- Modifying DPDK or netmap TCP engines to perform similar functionality
