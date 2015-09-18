@@ -29,9 +29,10 @@ connection information (e.g. IP addresses, ports, SEQ/ACK numbers), the
 libshambles codebase is highly limited. However, a sample toolchain leveraging
 libshambles is provided that consists of a libpcap daemon, an interceptor using
 libshambles, and Python/Ruby scripts wrapping a native (C++14) file descriptor
-accepting daemon. These tools are provided in the `samples` directory.
+accepting daemon. These tools are provided in the `samples` directory. You'll
+probably want to run the following across three separate terminal sessions:
 
-
+### Compile and load the `forge_socket` kernel module, and build libshambles:
 ```bash
 $ git clone <FILL IN>/libshambles
 $ git submodule init
@@ -43,7 +44,9 @@ $ cd ../../
 $ make
 ```
 
+### Setup libuv, and compile and run the `shambles` daemon
 ```bash
+$ cd /path/to/libshambles
 $ cd samples/shambles
 $ sh setup_libuv.sh
 $ make
@@ -51,6 +54,7 @@ $ mkdir /tmp/shambles
 $ sudo ./shambles <external IP> <internal IP> <LAN netmask> /tmp/shambles/shambles_sock
 ```
 
+### Compile and run the `scan` daemon
 ```bash
 $ cd /path/to/libshambles
 $ cd samples/scan
@@ -58,12 +62,19 @@ $ make
 $ sudo ./scan <internal interface> '<bpf filter>' '<search regex>' '127.0.0.1' '5555'
 ```
 
+### Compile the `hookffi` shared library, and use Python to hook stuff
 ```bash
 $ cd /path/to/libshambles
 $ cd samples/hookffi
 $ make
 $ nano hook.py # add in whatever you want to the custom_hook function
 $ python hook.py /tmp/shambles/shambles_sock root
+```
+If Ruby is more your thing than Python, edit the `custom_hook` method in
+`hook.rb` instead and run:
+
+```bash
+$ ruby hook.rb /tmp/shambles/shambles_sock root
 ```
 
 Next, try using a plaintext TCP connection that will match both the bpf filter
