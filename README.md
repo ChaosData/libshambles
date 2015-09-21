@@ -30,8 +30,9 @@ for my blog post introducing libshambles and the rationale behind it.
 
 As libshambles is a library and also needs to be supplied accurate TCP/IP
 connection information (e.g. IP addresses, ports, SEQ/ACK numbers), the
-libshambles codebase is highly limited. However, a sample toolchain leveraging
-libshambles is provided that consists of a libpcap daemon, an interceptor using
+libshambles codebase is highly limited. However, this repository contains a
+sample toolchain leveraging libshambles, which consists of a libpcap daemon, an
+interceptor using
 libshambles, and Python/Ruby scripts wrapping a native (C++14) file descriptor
 accepting daemon. These tools are provided in the `samples` directory. You'll
 probably want to run the following across three separate terminal sessions:
@@ -88,11 +89,10 @@ hook the connection and read and write to both the local client and remote host.
 
 
 # Dependencies
-
-libshambles itself has a couple of dependencies on netfilter stuff and the
-samples depend on some other things like libpcap and libuv. Additionally, as
-I've been developing libshambles on Ubuntu 14.04, it relies on Clang and libc++
-for modern C++ support needed to compile and run it.
+libshambles itself has a couple of dependencies on netfilter and the samples
+depend on various other projects like libpcap and libuv. Additionally, as I
+developed libshambles on Ubuntu 14.04, it relies on Clang and libc++ for modern
+C++ support needed to compile and run it.
 
 On Ubuntu 14.04, the below `apt-get` one-liner should get you most of the way
 there.
@@ -100,7 +100,7 @@ there.
 $ sudo apt-get install build-essential git libpcap-dev libmnl-dev libnetfilter-conntrack3 libcap-dev libc++-dev libc++abi1 libc++1 libnetfilter-conntrack-dev libtool automake autotools-dev
 ```
 You'll also need to grab Clang from the LLVM
-[releases page](http://llvm.org/releases/download.html). I'm lazy, so I just
+[releases page](http://llvm.org/releases/download.html). I usually
 extract it out to `/opt/clangllvm` on my machine and then prepend that to my
 `$PATH`, but do as you like.
 
@@ -109,9 +109,15 @@ Other dependencies are covered in the above quickstart instructions.
 
 # Future Work
 
+- IPv6
+    - this will likely require setting up DNAT/SNAT in both directions due to
+      the lack of NAT in IPv6 (in IPv4+NAT it is only needed for the inner
+      host)
+
 - FreeBSD support:
     - port forge_socket to FreeBSD
-    - implement analogous connection tracking stuff
+    - implement analogous connection tracking stuff (e.g. equvalents for
+      libnetfilter_conntrack functionality)
     - convert firewall rules
         - likely support IPFW, FreeBSD's pf is more limited for these things
     - refactor to more cleanly separate out GPL-encumbered code and try hard to
