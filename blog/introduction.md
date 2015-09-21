@@ -158,8 +158,14 @@ beaten using one or multiple of the following:
 
 Based on the results I achieved so far with libshambles, there
 are definitely a few things I have in mind to add/implement in future versions.
-Primarily, these include FreeBSD support (which will likely require creating a
-`forge_socket`-alike among other changes to support the different firewall
+I am going to add in IPv6 support soon. This should be a relatively simple
+change, but it will require some extra tooling to test. As IPv6 doesn't tend to
+do NAT-ing, it is likely that each intercepted connection will need to incur
+four `iptables` rules in the form of a SNAT/DNAT for both the inner host-router
+connection and the router-outer host connection.
+However, my loftier goals include include FreeBSD support (which will likely
+require creating a `forge_socket`-alike among other changes to support the
+different firewall
 stack) and researching weaknesses in the design (and more specifically the
 current implementation) from a detection perspective. There are likely some
 shell games to be played with identifying subtleties in TCP engine differences
@@ -168,4 +174,3 @@ changes to packet fields/socket state like window sizes, which are not
 currently being copied into the forged sockets. I will also investigate whether
 this (or at least a libshambles client) can be integrated into the venerable
 [Net Sensor](https://isis.poly.edu/~bk/netsensor/) codebase.
-
