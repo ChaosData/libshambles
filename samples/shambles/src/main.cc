@@ -222,7 +222,7 @@ int8_t onPktDataReceived(uv_stream_t* sock, pkt_data_t* pdt) noexcept {
 void onRead(uv_stream_t* sock, ssize_t nread, const uv_buf_t *buf) noexcept {
   DEBUG_printf("%s\n", __func__ );
 
-  #ifndef DEBUG
+  #ifdef DEBUG
   struct timeval tv;
 
   gettimeofday(&tv, NULL);
@@ -474,5 +474,6 @@ int main(int argc, char const *argv[]) noexcept {
   }
 
   signal(SIGINT, cleanup);
+  puts("Listening...");
   return uv_run(loop, UV_RUN_DEFAULT);
 }

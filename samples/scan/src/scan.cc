@@ -80,7 +80,7 @@ const uint8_t* strnstrn(const uint8_t* haystack, uint32_t hn, const uint8_t* nee
   return nullptr;
 }
 
-struct pkt_data hammer_time = {0,0, 0,0, 0,0, 0,nullptr};
+pkt_data_t pdt = {0,0, 0,0, 0,0, 0,nullptr};
 
 
 void intercept(struct pkt_data* pb) {
@@ -125,14 +125,14 @@ bool tcp_handler(uint32_t rsize, const uint8_t* bytes) {
 //  const uint8_t* match = strnstrn(payload, rsize, query, strlen((char*)query));
 //  if (match != nullptr) {
   if(std::regex_search(std::string((char*)payload, payload_size), regex)) {
-    hammer_time.src_port = hdr->th_sport;
-    hammer_time.dst_port = hdr->th_dport;
-    hammer_time.seq = htonl(ntohl(hdr->th_seq) + payload_size);
-    hammer_time.ack = hdr->th_ack;
-    hammer_time.msg_len = htons(payload_size);
-    hammer_time.msg = (uint8_t*)malloc(payload_size);
-    if (hammer_time.msg != nullptr) {
-      memcpy(hammer_time.msg, payload, payload_size);
+    pdt.src_port = hdr->th_sport;
+    pdt.dst_port = hdr->th_dport;
+    pdt.seq = htonl(ntohl(hdr->th_seq) + payload_size);
+    pdt.ack = hdr->th_ack;
+    pdt.msg_len = htons(payload_size);
+    pdt.msg = (uint8_t*)malloc(payload_size);
+    if (pdt.msg != nullptr) {
+      memcpy(pdt.msg, payload, payload_size);
     }
     return true;
   }
@@ -160,8 +160,8 @@ bool ip_handler(uint32_t rsize, const uint8_t* bytes) {
     switch(hdr4->ip_p) {
       case IPPROTO_TCP:
          if ( tcp_handler(rsize - hdr4_size, payload) ) {
-           hammer_time.src_addr = hdr4->ip_src.s_addr;
-           hammer_time.dst_addr = hdr4->ip_dst.s_addr;
+           pdt.src_addr = hdr4->ip_src.s_addr;
+           pdt.dst_addr = hdr4->ip_dst.s_addr;
            return true;
          }
          return false;
@@ -195,9 +195,9 @@ void eth_handler(uint8_t* user, const struct pcap_pkthdr* pkthdr, const uint8_t*
     return;
   } else if (ntohs(hdr->ether_type) == ETHERTYPE_IP) {
     if ( ip_handler(capturedSize - sizeof(ether_header), bytes + sizeof(ether_header)) ) {
-      puts("stop! hammer time!");
-      intercept(&hammer_time);
-      free(hammer_time.msg);
+      DEBUG_printf("ZA WARUDO!\n");
+      intercept(&pdt);
+      free(pdt.msg);
       exit(0);
     }
   } else {
@@ -257,7 +257,7 @@ int main(int argc, char const *argv[]) {
   if (r != 0) {
     strerror_r(errno, ebuf, sizeof(ebuf));
     fprintf(stderr, "client_sock:connect => %s\n", ebuf);
-    free(hammer_time.msg);
+    free(pdt.msg);
     return -1;
   }
 
@@ -269,6 +269,7 @@ int main(int argc, char const *argv[]) {
     mask = 0;
   }
 
+  puts("Starting capture...");
   handle = pcap_open_live(dev, 1000, 0, 1, errbuf);
   if (handle == NULL) {
     fprintf(stderr, "Couldn't open device %s: %s\n", dev, errbuf);
