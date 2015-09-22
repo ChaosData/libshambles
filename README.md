@@ -106,9 +106,20 @@ extract it out to `/opt/clangllvm` on my machine and then prepend that to my
 
 Other dependencies are covered in the above quickstart instructions.
 
+# Versioning
+libshambles uses semantic versioned tag branches. In general, this means that
+the version format is `major.minor.patch`, where major version updates include
+backwards compatability changes (and/or other major changes), minor version
+updates include new features that don't break the API and possibly
+deprecations, and patch version updates fix bugs. Please note that depending on
+the bugs fixed, it may be necessary to increment the minor or even major
+version number. Any such instances will be clearly marked should they occur by
+a clear note in the `CHANGELOG` file. For now, and likely the forseeable
+future, I intend only to fix bugs in the current `major.minor` branch. For
+example, should a `1.2.0` release come out following `1.1.8`, there will not be
+a `1.1.9` release containing backported fixes for the `1.1.x` branch.
 
 # Future Work
-
 - IPv6
     - this will likely require setting up DNAT/SNAT in both directions due to
       the lack of NAT in IPv6 (in IPv4+NAT it is only needed for the inner
@@ -122,6 +133,8 @@ Other dependencies are covered in the above quickstart instructions.
         - likely support IPFW, FreeBSD's pf is more limited for these things
     - refactor to more cleanly separate out GPL-encumbered code and try hard to
       avoid `#ifdef` hell
+
+- Unit tests
 
 - Integration with highly advanced PCAP daemons
   (e.g. [Net Sensor](https://isis.poly.edu/~bk/netsensor/))
