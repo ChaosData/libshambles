@@ -109,12 +109,12 @@ Other dependencies are covered in the above quickstart instructions.
 # Versioning
 libshambles uses semantic versioned tag branches. In general, this means that
 the version format is `major.minor.patch`, where major version updates include
-backwards compatability changes (and/or other major changes), minor version
+backwards compatibility changes (and/or other major changes), minor version
 updates include new features that don't break the API and possibly
 deprecations, and patch version updates fix bugs. Please note that depending on
 the bugs fixed, it may be necessary to increment the minor or even major
 version number. Any such instances will be clearly marked should they occur by
-a clear note in the `CHANGELOG` file. For now, and likely the forseeable
+a clear note in the `CHANGELOG` file. For now, and likely the foreseeable
 future, I intend only to fix bugs in the current `major.minor` branch. For
 example, should a `1.2.0` release come out following `1.1.8`, there will not be
 a `1.1.9` release containing backported fixes for the `1.1.x` branch.
