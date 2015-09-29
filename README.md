@@ -19,8 +19,8 @@ connection is finished.
 
 libshambles is written in C++ (compiled as C++14), but exports its public API
 bindings as C. It is mostly released under the two-clause BSD license, but due
-to its current dependence on a Linux kernel module and netfilter, compiled
-binaries will be encumbered by the GPLv2.
+to its current dependence on a Linux kernel module library, compiled binaries
+will be encumbered by the GPLv2.
 
 See
 [https://www.nccgroup.trust/us/about-us/newsroom-and-events/blog/FILLIN](https://www.nccgroup.trust/us/about-us/newsroom-and-events/blog/FILLIN)
@@ -82,22 +82,22 @@ If Ruby is more your thing than Python, edit the `custom_hook` method in
 $ ruby hook.rb /tmp/shambles/shambles_sock root
 ```
 
-Next, make a plaintext TCP connection from a host behind the one running
-the sample tools (and out to a remote host) that will match both the bpf filter
-and search regex passed to the `scan` daemon. Observe that your code will
-hook the connection and read and write to both the local client and remote host.
+Next, make a plaintext TCP connection from a host behind the one running the
+sample tools (and out to a remote host) that will match both the bpf filter and
+search regex passed to the `scan` daemon. Observe that your code will hook the
+connection and read and write to both the local client and remote host.
 
 
 # Dependencies
-libshambles itself has a couple of dependencies on netfilter and the samples
-depend on various other projects like libpcap and libuv. Additionally, as I
-developed libshambles on Ubuntu 14.04, it relies on Clang and libc++ for modern
-C++ support needed to compile and run it.
+libshambles itself has a couple of dependencies and the samples depend on
+various other projects like libpcap and libuv. Additionally, as I developed
+libshambles on Ubuntu 14.04, it relies on Clang and libc++ for modern C++
+support needed to compile and run it.
 
 On Ubuntu 14.04, the below `apt-get` one-liner should get you most of the way
 there.
 ```bash
-$ sudo apt-get install build-essential git libpcap-dev libmnl-dev libnetfilter-conntrack3 libcap-dev libc++-dev libc++abi1 libc++1 libnetfilter-conntrack-dev libtool automake autotools-dev
+$ sudo apt-get install build-essential git libpcap-dev libmnl-dev libcap-dev libc++-dev libc++abi1 libc++1 libtool automake autotools-dev
 ```
 You'll also need to grab Clang from the LLVM
 [releases page](http://llvm.org/releases/download.html). I usually
