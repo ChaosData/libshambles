@@ -7,7 +7,7 @@ LINK=-pie -L ../../lib -L vendor/libuv/.libs/ -Wl,-z,relro,-z,now,-z,noexecstack
 INCS=-I include -I ../../include/ -I vendor/libuv/include
 OUTPUT=-o shambles
 
-LIBS=-lnetfilter_conntrack -lcap -lpthread -Wl,-Bstatic -luv -lshambles -Wl,-Bdynamic
+LIBS=-lmnl -lcap -lpthread -Wl,-Bstatic -luv -lshambles -Wl,-Bdynamic
 
 default: build/main.o build/util.o
 	${CXX} ${CXXFLAGS} ${OPTIMIZE} ${INCS} ${LINK} ${OUTPUT} build/main.o build/util.o ${LIBS}

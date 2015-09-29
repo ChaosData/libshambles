@@ -51,7 +51,7 @@ struct nf_ct {
   addr_t h_s;
   addr_t h_d;
 
-  uint8_t h_3p; //ATTR_ORIG_L3PROTO
+  uint8_t h_3p;
   uint8_t h_p;
   uint16_t h_4s;
   uint16_t h_4d;

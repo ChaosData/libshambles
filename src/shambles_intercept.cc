@@ -91,10 +91,12 @@ int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd,
 
   DEBUG_printf("Deleting old conntrack entry.");
 
-  int32_t delret = conntrack_ipv4_tcp<Conntrack::Delete>(_pd->src_addr, _pd->dst_addr,
-                                             _pd->src_port, _pd->dst_port,
-                                             _pd->dst_port, _pd->src_port,
-                                             _pd->dst_addr, _outer_addr);
+  int32_t delret = conntrack_ipv4_tcp<Conntrack::Delete>(
+      _pd->src_addr, _pd->dst_addr,
+      _pd->src_port, _pd->dst_port,
+      _pd->dst_port, _pd->src_port,
+      _pd->dst_addr, _outer_addr
+  );
   if (delret != 1) {
     printf("delret: %d\n", delret);
     return -3;
@@ -102,10 +104,12 @@ int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd,
 
 
   DEBUG_printf("Injecting new conntrack entries.");
-  int32_t injret = conntrack_ipv4_tcp<Conntrack::Inject>(_outer_addr, _pd->dst_addr,
-                                             _pd->src_port, _pd->dst_port,
-                                             _pd->dst_addr, _outer_addr,
-                                             _pd->dst_port, _pd->src_port);
+  int32_t injret = conntrack_ipv4_tcp<Conntrack::Inject>(
+      _outer_addr, _pd->dst_addr,
+      _pd->src_port, _pd->dst_port,
+      _pd->dst_addr, _outer_addr,
+      _pd->dst_port, _pd->src_port
+  );
   if (injret != 1) {
     printf("injret: %d\n", injret);
     return -4;
