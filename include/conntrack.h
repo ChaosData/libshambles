@@ -44,10 +44,11 @@ const size_t mnl_socket_buffer_size = MNL_SOCKET_BUFFER_SIZE;
 
 // ip addresses are struct in_addr (aka uint32_t in network byte order)
 // ports are in network byte order
+//  typename = std::enable_if<std::is_base_of<T, ConntrackOption>::value, T>
 
 template<
   typename T,
-  typename = std::enable_if<std::is_base_of<T, ConntrackOption>::value>
+  typename = std::enable_if_t<std::is_base_of<ConntrackOption, T>::value>
 >
 int32_t conntrack_ipv4_tcp(uint32_t orig_src_addr, uint32_t orig_dst_addr,
                            uint16_t orig_src_port, uint16_t orig_dst_port,
