@@ -54,7 +54,7 @@ $ cd samples/shambles
 $ sh setup_libuv.sh
 $ make
 $ mkdir /tmp/shambles
-$ sudo ./shambles <external IP> <internal IP> <LAN netmask> /tmp/shambles/shambles_sock
+$ sudo ./shambles <external IP> <internal IP> <LAN netmask> /tmp/shambles/shambles_sock <bind address> <bind socket>
 ```
 
 #### Compile and run the `scan` daemon:
@@ -62,7 +62,7 @@ $ sudo ./shambles <external IP> <internal IP> <LAN netmask> /tmp/shambles/shambl
 $ cd /path/to/libshambles
 $ cd samples/scan
 $ make
-$ sudo ./scan <internal interface> '<bpf filter>' '<search regex>' '127.0.0.1' '5555'
+$ sudo ./scan <internal interface> '<bpf filter>' '<search regex>' <shambles bind address> <shambles bind socket>
 ```
 
 #### Compile the `hookffi` shared library, and use Python to hook stuff:

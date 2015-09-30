@@ -28,6 +28,7 @@
 #define LIBSHAMBLES_UTIL_H_
 
 #include <stdint.h>
+#include <string>
 
 #ifdef DEBUG
   #define DEBUG_printf(...) fprintf(stderr, __VA_ARGS__)
@@ -36,6 +37,7 @@
 #endif
 
 uint8_t parse_ipv4(const char* str, uint64_t len);
+bool is_numeric(const std::string& s);
 
 /**
 * Usage:

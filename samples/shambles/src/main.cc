@@ -358,9 +358,10 @@ void onShutdown(uv_shutdown_t* req, int status) noexcept {
 }
 
 int main(int argc, char const *argv[]) noexcept {
-  if (argc != 5) {
-    fprintf(stderr, "Usage: ./%s <public IP> <internal IP> <internal netmask> "
-                    "<unix domain socket path>\n", argv[0]);
+  if (argc != 7) {
+    fprintf(stderr, "Usage: %s <public IP> <internal IP> <internal netmask> "
+                    "<unix domain socket path> <bind address> <bind socket>\n",
+                    argv[0]);
     return -1;
   }
 
@@ -379,6 +380,18 @@ int main(int argc, char const *argv[]) noexcept {
     return -4;
   }
 
+  if ( parse_ipv4(argv[5], strlen(argv[5])) != 0 ) {
+    fprintf(stderr, "Invalid <bind address> value: %s\n", argv[5]);
+    return -5;
+  }
+
+  int port = atoi(argv[6]);
+  if ( port < 0
+        || port > static_cast<int>(UINT16_MAX)
+        || !is_numeric(std::string(argv[6])) ) {
+    fprintf(stderr, "Invalid <bind port> value: %s\n", argv[6]);
+    return -6;
+  }
 
   DEBUG_printf("Validating privileges.\n");
   cap_value_t required_capability_list[2] = { CAP_NET_ADMIN, CAP_NET_RAW };
@@ -388,35 +401,35 @@ int main(int argc, char const *argv[]) noexcept {
   capabilities = cap_get_proc();
   if (capabilities == NULL) {
     fprintf(stderr, "Can't get capabilities information, exiting.\n");
-    return -5;
+    return -7;
   }
  
   cap_value_t cap = CAP_NET_ADMIN;
   cap_flag_value_t has_cap;
   if(cap_get_flag(capabilities, cap, CAP_PERMITTED, &has_cap) != 0) {
     fprintf(stderr, "Invalid capability check? Exiting.\n");
-    return -6;
+    return -8;
   }
   if (!has_cap) {
     fprintf(stderr, "Process does not have CAP_NET_ADMIN, exiting.\n");
-    return -7;
+    return -9;
   }
 
   cap = CAP_NET_RAW; 
   if(cap_get_flag(capabilities, cap, CAP_PERMITTED, &has_cap) != 0) {
     fprintf(stderr, "Invalid capability check?\n");
-    return -8;
+    return -10;
   }
   if (!has_cap) {
     fprintf(stderr, "Process does not have CAP_NET_RAW, exiting.\n");
-    return -9;
+    return -11;
   }
 
 
   DEBUG_printf("Dropping privileges.\n");
   if (cap_clear(capabilities) == -1) {
     fprintf(stderr, "Can't clear capabilities, exiting.\n");
-    return -10;
+    return -12;
   }
 
 
@@ -425,26 +438,26 @@ int main(int argc, char const *argv[]) noexcept {
         sizeof(required_capability_list)/sizeof(required_capability_list[0]),
         required_capability_list, CAP_SET) == -1) {
     fprintf(stderr, "Error setting capabilities flags, exiting.\n");
-    return -11;
+    return -13;
   }
 
   if (cap_set_flag(capabilities, CAP_EFFECTIVE,//CAP_PERMITTED,
         sizeof(required_capability_list)/sizeof(required_capability_list[0]),
         required_capability_list, CAP_SET) == -1) {
     fprintf(stderr, "Error setting capabilities flags, exiting.\n");
-    return -11;
+    return -14;
   }
   
 
   if (cap_set_proc(capabilities) == -1) {
     fprintf(stderr, "Can't set restricted capabilities subset, exiting.\n");
-    return -11;
+    return -15;
   } 
 
 
   if ( cap_free(capabilities) == -1 ) {
     fprintf(stderr, "Could not free capabilities structures, exiting.\n");
-    return -12;
+    return -16;
   }
 
   outer_addr = inet_addr(argv[1]);
@@ -461,7 +474,7 @@ int main(int argc, char const *argv[]) noexcept {
   uv_tcp_t tcp_server;
   uv_tcp_init(loop, &tcp_server);
 
-  uv_ip4_addr("127.0.0.1", 5555, &addr);
+  uv_ip4_addr(argv[5], port, &addr);
 
   uv_tcp_bind(&tcp_server, (const struct sockaddr*)&addr, 0);
   int r = uv_listen((uv_stream_t*) &tcp_server,

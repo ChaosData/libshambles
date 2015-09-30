@@ -29,7 +29,7 @@
 #include <stdio.h>
 #include <string.h>
 
-uint8_t parse_ipv4(const char* str, uint64_t len){
+uint8_t parse_ipv4(const char* str, uint64_t len) {
   uint8_t digits = 0;
   uint8_t vals[3] = { 0,0,0 };
   uint8_t dots = 0;
@@ -70,6 +70,15 @@ uint8_t parse_ipv4(const char* str, uint64_t len){
     return 0;
   }
   return 6;
+}
+
+bool is_numeric(const std::string& s) {
+    return !s.empty() && std::find_if(
+        s.begin(), 
+        s.end(),
+        [](char c) {
+          return !std::isdigit(c);
+        }) == s.end();
 }
 
 char* inet_htoa_r(char* buf, uint32_t haddr) {
