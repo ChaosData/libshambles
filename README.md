@@ -17,10 +17,8 @@ other processes via Unix domain sockets and also contains teardown
 functionality to undo the firewall modifications once the intercepted
 connection is finished.
 
-libshambles is written in C++ (compiled as C++14), but exports its public API
-bindings as C. It is mostly released under the two-clause BSD license, but due
-to its current dependence on a Linux kernel module library, compiled binaries
-will be encumbered by the GPLv2.
+libshambles is written in C++ (compiled as C++14), but provides C bindings for
+its public API. It is released under a two-clause BSD license.
 
 See
 [https://www.nccgroup.trust/us/about-us/newsroom-and-events/blog/FILLIN](https://www.nccgroup.trust/us/about-us/newsroom-and-events/blog/FILLIN)
@@ -131,8 +129,6 @@ a `1.1.9` release containing backported fixes for the `1.1.x` branch.
       libnetfilter_conntrack functionality)
     - convert firewall rules
         - likely support IPFW, FreeBSD's pf is more limited for these things
-    - refactor to more cleanly separate out GPL-encumbered code and try hard to
-      avoid `#ifdef` hell
 
 - Unit tests
 

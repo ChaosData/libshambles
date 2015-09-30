@@ -23,12 +23,6 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-/*
- * Note: The code in this file currently links against (lib)forge_socket, which
- * is released under the terms of the GPLv2. While the code in this file is
- * released under non-GPLv2 terms, binary distributions including this code
- * must comply with the terms of the GPLv2.
- */
 
 #include "shambles.h"
 
