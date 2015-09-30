@@ -45,13 +45,12 @@
 #include <arpa/inet.h>
 #include <net/ethernet.h>
 #include <netinet/ip.h>
-#include <netinet/ip6.h>
 #include <netinet/tcp.h>
 
 #include <pcap.h>
 
-#include "libforge_socket_override/libforge_socket.h"
 #include "conntrack.h"
+#include "forgery.h"
 #include "util.h"
 
 constexpr static char const dnat[] = "iptables -t nat -%c PREROUTING -m state --state INVALID,NEW,RELATED,ESTABLISHED -p tcp -s %s --sport %hu -d %s --dport %hu -j DNAT --to-destination %s:%hu";
@@ -68,8 +67,10 @@ constexpr static uint16_t snat_size = sizeof(snat)    - 1                       
 //constexpr static uint16_t conntrackI_size = sizeof(conntrackI)    + 13          + 13                        + 2                 + 2                  + 2                  + 2           + 13           + 13;
 
 
+
 int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd,
                  uint32_t const _outer_addr, uint32_t const _inner_addr) {
+
   DEBUG_printf("%s\n", __func__);
   #ifdef DEBUG
   pkt_data_dump(_pd);
@@ -90,7 +91,6 @@ int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd,
 
 
   DEBUG_printf("Deleting old conntrack entry.");
-
   int32_t delret = conntrack_ipv4_tcp<Conntrack::Delete>(
       _pd->src_addr, _pd->dst_addr,
       _pd->src_port, _pd->dst_port,
@@ -99,7 +99,7 @@ int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd,
   );
   if (delret != 1) {
     printf("delret: %d\n", delret);
-    return -3;
+    return -1;
   }
 
 
@@ -112,7 +112,7 @@ int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd,
   );
   if (injret != 1) {
     printf("injret: %d\n", injret);
-    return -4;
+    return -2;
   }
 
 
@@ -134,16 +134,62 @@ int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd,
   system(snat_command);
 
 
-
-  struct tcp_state *fake_server;
-  struct tcp_state *fake_client;
-
-  fake_server = forge_socket_get_default_state();
-  fake_client = forge_socket_get_default_state();
+  struct tcp_state *fake_server = (tcp_state_t *)calloc(1, sizeof(tcp_state_t));
+  if (fake_server == nullptr) {
+    return -3;
+  }
+  struct tcp_state *fake_client = (tcp_state_t *)calloc(1, sizeof(tcp_state_t));
+  if (fake_client == nullptr) {
+    free(fake_server);
+    return -4;
+  }
   
-  int client_sock = socket(AF_INET, SOCK_FORGE, 0);
-  int server_sock = socket(AF_INET, SOCK_FORGE, 0);
 
+  int client_sock = socket(AF_INET, SOCK_FORGE, 0);
+  if (client_sock == -1) {
+    perror("intercept:socket->client_sock");
+    free(fake_server);
+    free(fake_client);
+    return -5;
+  }
+  int server_sock = socket(AF_INET, SOCK_FORGE, 0);
+  if (server_sock == -1) {
+    perror("intercept:socket->server_sock");
+    close(client_sock);
+    free(fake_server);
+    free(fake_client);
+    return -6;
+  }
+
+  if (set_forged_sock_opts(client_sock) != 1) {
+    close(client_sock);
+    close(server_sock);
+    free(fake_server);
+    free(fake_client);
+    return -7;
+  }
+  if (set_forged_sock_opts(server_sock) != 1) {
+    close(client_sock);
+    close(server_sock);
+    free(fake_server);
+    free(fake_client);
+    return -8;
+  }
+
+  if (bind_forged_sock_ipv4_anywhere(client_sock) != 1) {
+    close(client_sock);
+    close(server_sock);
+    free(fake_server);
+    free(fake_client);
+    return -9;
+  }
+  if (bind_forged_sock_ipv4_anywhere(server_sock) != 1) {
+    close(client_sock);
+    close(server_sock);
+    free(fake_server);
+    free(fake_client);
+    return -10;
+  }
 
   fake_client->src_ip = _outer_addr;
   fake_client->dst_ip = _pd->dst_addr;
@@ -152,6 +198,9 @@ int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd,
   fake_client->seq = ntohl(_pd->seq);
   fake_client->ack = ntohl(_pd->ack);
   fake_client->snd_una = ntohl(_pd->seq);
+  fake_client->snd_wnd = 0x1000;
+  fake_client->rcv_wnd = 0x1000;
+
 
   fake_server->src_ip = _inner_addr;
   fake_server->dst_ip = _pd->src_addr;
@@ -160,30 +209,29 @@ int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd,
   fake_server->seq = ntohl(_pd->ack);
   fake_server->ack = ntohl(_pd->seq);
   fake_server->snd_una = ntohl(_pd->ack);
+  fake_server->snd_wnd = 0x1000;
+  fake_server->rcv_wnd = 0x1000;
 
-  if (forge_socket_set_state(client_sock, fake_server) != 0) {
-    fprintf(stderr, "forge_socket_set_state for inner socket failed\n");
+
+  if (forge_tcp_state(client_sock, fake_server) != 1) {
     close(client_sock);
     close(server_sock);
     free(fake_server);
     free(fake_client);
-    return -1;
+    return -11;
   }
-
-
-  if (forge_socket_set_state(server_sock, fake_client) != 0) {
-    fprintf(stderr, "fail2\n");
+  if (forge_tcp_state(server_sock, fake_client) != 1) {
     close(client_sock);
     close(server_sock);
     free(fake_server);
     free(fake_client);
-    return -2;
+    return -12;
   }
-
 
 
   _out->outer_sock = server_sock;
   _out->inner_sock = client_sock;
+
 
   free(fake_server);
   free(fake_client);
