@@ -27,8 +27,6 @@
 #ifndef LIBSHAMBLES_CONNTRACK_H_
 #define LIBSHAMBLES_CONNTRACK_H_
 
-#include "conntrack-struct.h"
-
 #include <stdint.h>
 #include <string.h>
 #include <time.h>
@@ -38,6 +36,17 @@
 #include <linux/netfilter/nfnetlink.h>
 
 #include <type_traits>
+
+struct ConntrackOption { };
+struct ConntrackInjectOption : ConntrackOption { };
+struct ConntrackDeleteOption : ConntrackOption { };
+struct ConntrackWatOption : ConntrackOption { };
+
+struct Conntrack {
+  using Inject = ConntrackInjectOption;
+  using Delete = ConntrackDeleteOption;
+  using Wat = ConntrackWatOption;
+};
 
 const uint32_t timeout = htonl(120);
 const size_t mnl_socket_buffer_size = MNL_SOCKET_BUFFER_SIZE;
