@@ -125,8 +125,8 @@ a `1.1.9` release containing backported fixes for the `1.1.x` branch.
 
 - FreeBSD support:
     - port forge_socket to FreeBSD
-    - implement analogous connection tracking stuff (e.g. equvalents for
-      libnetfilter_conntrack functionality)
+    - implement analogous connection tracking stuff (e.g. equivalents for
+      netfilter conntrack functionality)
     - convert firewall rules
         - likely support IPFW, FreeBSD's pf is more limited for these things
 
@@ -151,5 +151,6 @@ a `1.1.9` release containing backported fixes for the `1.1.x` branch.
 
 Feel free to send pull requests or even just add an issue if you spot a bug (or
 would like to make a feature request). If you happen to find any security
-issues, please drop me a line at `jeff.dileo@nccgroup.trust` (my PGP key is
-available [here](https://isecpartners.github.io/keys/jdileo.asc)).
+issues, please contact me directly at `jeff.dileo@nccgroup.trust` (my PGP key is
+available [here](https://isecpartners.github.io/keys/jdileo.asc)) instead of
+filing an issue.
