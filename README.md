@@ -37,7 +37,7 @@ probably want to run the following across three separate terminal sessions:
 
 #### Compile and load the `forge_socket` kernel module, and build libshambles:
 ```bash
-$ git clone <FILL IN>/libshambles
+$ git clone https://github.com/iSECPartners/libshambles
 $ git submodule init
 $ git submodule update
 $ cd vendor/forge_socket

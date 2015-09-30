@@ -18,7 +18,7 @@ on intercepting **ALL** connection attempts and proxying them to their intended
 destinations. Needless to say, that doesn't really scale.
 
 To address this issue, I created libshambles, available
-[here](FILLIN).
+[here](https://github.com/iSECPartners/libshambles).
 libshambles is a library that enables one to hook live TCP connections that are already
 routing through your Linux host. When provided with information about a
 particular TCP connection (and some host network interface information), this library
@@ -90,7 +90,7 @@ However, regardless of the architecture used, **something** needs to pass the
 TCP connection data (including the SEQ/ACK numbers) to libshambles. A very
 simple PCAP listener that communicates with the sample libshambles interceptor
 is included in the
-[`samples/scan`](FILLIN)
+[`samples/scan`](https://github.com/iSECPartners/libshambles/tree/master/samples/scan)
 directory of the repository.
 
 ## libshambles Interceptor
@@ -100,16 +100,16 @@ be used by some process on the router that has the `CAP_NET_ADMIN` and
 just about any manner and the design will likely be dictated primarily by
 the design of the chosen architecture... and maybe taste. As part of the
 libshambles release, I included a sample interceptor in
-[samples/shambles](FILLIN) that is libuv-based. A threaded implementation might
-in-general have lower latency on the data submission from a PCAP listener to
-the interceptor, but I haven't specifically tried to optimize the sample
-toolchain.
+[samples/shambles](https://github.com/iSECPartners/libshambles/tree/master/samples/shambles)
+that is libuv-based. A threaded implementation might in-general have lower
+latency on the data submission from a PCAP listener to the interceptor, but I
+haven't specifically tried to optimize the sample toolchain.
 
 ## Protocol-Specific Proxy
 libshambles contains code to pass the forged sockets to a separate process via
 Unix domain sockets. What you pass them to is up to you as long as it's on the
 same host. Within
-[samples/hookscripts](fillin),
+[samples/hookscripts](https://github.com/iSECPartners/libshambles/tree/master/samples/hookscripts),
 I included a shared library and some scripts (Python/ctypes and Ruby/ffi)
 that wrap the library to create in-language socket objects from the passed file
 descriptors. For my own sanity, I implemented the shared library to run a
