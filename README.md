@@ -35,7 +35,7 @@ libshambles, and Python/Ruby scripts wrapping a native (C++14) file descriptor
 accepting daemon. These tools are provided in the `samples` directory. You'll
 probably want to run the following across three separate terminal sessions:
 
-#### Compile and load the `forge_socket` kernel module, and build libshambles:
+#### Compile and load the `forge_socket` kernel module, load the `nf_conntrack_ipv4` module, and build libshambles:
 ```bash
 $ git clone https://github.com/iSECPartners/libshambles
 $ git submodule init
@@ -43,6 +43,7 @@ $ git submodule update
 $ cd vendor/forge_socket
 $ make
 $ sudo insmod forge_socket.ko
+$ sudo modprobe nf_conntrack_ipv4
 $ cd ../../
 $ make
 ```
@@ -54,6 +55,7 @@ $ cd samples/shambles
 $ sh setup_libuv.sh
 $ make
 $ mkdir /tmp/shambles
+$ sudo ./nat.sh <external interface> <internal interface> <internal network> [blacklist network]
 $ sudo ./shambles <external IP> <internal IP> <LAN netmask> /tmp/shambles/shambles_sock <bind address> <bind socket>
 ```
 
@@ -71,13 +73,13 @@ $ cd /path/to/libshambles
 $ cd samples/hookffi
 $ make
 $ nano hook.py # add in whatever you want to the custom_hook function
-$ python hook.py /tmp/shambles/shambles_sock root
+$ python hook.py /tmp/shambles_sock root
 ```
 If Ruby is more your thing than Python, edit the `custom_hook` method in
 `hook.rb` instead and run:
 
 ```bash
-$ ruby hook.rb /tmp/shambles/shambles_sock root
+$ ruby hook.rb /tmp/shambles_sock root
 ```
 
 Next, make a plaintext TCP connection from a host behind the one running the

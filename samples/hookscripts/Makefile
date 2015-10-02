@@ -1,5 +1,3 @@
-clang++ -std=c++14 -stdlib=libc++ -Wall -Wextra -pedantic -g -shared -fPIC -fPIE -o hookffi.so -I include src/hookffi.cc -DDEBUG
-
 CXX=clang++
 CXXFLAGS=-std=c++14 -stdlib=libc++ -Wall -Wextra -pedantic -fPIC -fPIE -fstack-protector-strong -D_FORTIFY_SOURCE=2
 SANITIZE=-fsanitize=address,undefined
