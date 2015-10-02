@@ -29,8 +29,16 @@
 
 #include <stdint.h>
 #include <forge_socket/forge_socket.h>
-typedef struct tcp_state tcp_state_t;
 
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <stdlib.h>
+#include <arpa/inet.h>
+
+typedef struct tcp_state tcp_state_t;
 
 int8_t set_forged_sock_opts(int sock);
 

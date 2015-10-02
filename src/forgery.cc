@@ -35,8 +35,7 @@
 #include <arpa/inet.h>
 
 int const one = 1;
-struct sockaddr_in const ipv4_anywhere{ AF_INET, 0, {inet_addr("127.0.0.1")}, {0} };
-
+static struct sockaddr_in const ipv4_anywhere = { AF_INET, 0, {inet_addr("127.0.0.1")}, {0} };
 
 int8_t set_forged_sock_opts(int sock) {
   if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one)) < 0) {

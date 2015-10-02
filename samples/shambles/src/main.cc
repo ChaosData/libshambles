@@ -163,20 +163,22 @@ void onUdsConnect(uv_connect_t* conn, int status) noexcept {
       fprintf(stderr, "onUdsConnect:uv_fileno: no file descriptor yet or "
                       "conn->handle has been closed\n");
     }
-    free(conn);
-    uv_close((uv_handle_t*) conn->handle, free_socket);
-  }
-  DEBUG_printf("sending forged packets\n");
-  send_forged_sockets2(real_uds_fd, fst);
-  
-  //closing local handle to sockets
-  close(fst->outer_sock);
-  close(fst->inner_sock);
-  free(fst);
-  fst_state.erase((uv_pipe_t*)conn->handle);
+  } else {
+    DEBUG_printf("sending forged packets\n");
+    send_forged_sockets2(real_uds_fd, fst);
+    
+    //closing local handle to sockets
+    close(fst->outer_sock);
+    close(fst->inner_sock);
+    free(fst);
+    fst_state.erase((uv_pipe_t*)conn->handle);
 
-  uv_read_start((uv_stream_t*) conn->handle, alloc_buffer, onUdsRead);
+    uv_read_start((uv_stream_t*) conn->handle, alloc_buffer, onUdsRead);
+  }
+  void* handle = conn->handle;
   free(conn);
+  uv_close((uv_handle_t*) handle, free_socket);
+
 }
 
 

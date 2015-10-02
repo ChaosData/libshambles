@@ -33,6 +33,8 @@
 #include <string.h>
 #include <stdio.h>
 
+ #include "util.h"
+
 
 void swap_pkt_data(pkt_data_t const * const _in, pkt_data_t * const _out) {
   _out->src_addr = _in->dst_addr;
@@ -81,12 +83,13 @@ ssize_t send_forged_sockets(forged_sockets_t const * const _fst,
     perror("send_forged_sockets:socket");
     return -1;
   }
-  puts(_path);
+
   memset(&saddr, 0, sizeof(saddr));
-  //strncpy(saddr.sun_path, _path, sizeof(saddr.sun_family)-1);
-  strcpy(saddr.sun_path, _path);
-  puts(saddr.sun_path);
+  strncpy(saddr.sun_path, _path, sizeof(saddr.sun_path)-1);
+  //strcpy(saddr.sun_path, _path); //generally cli input, this is faster
+                                   //n2s: learn to suppress clang-tidy
   // 107 bytes + 1 NUL (pre-nulled by memset)
+  DEBUG_printf("%s\n", saddr.sun_path);
   saddr.sun_family = AF_LOCAL;
 
   if (connect(fd, reinterpret_cast<struct sockaddr*>(&saddr),
@@ -100,8 +103,6 @@ ssize_t send_forged_sockets(forged_sockets_t const * const _fst,
   struct cmsghdr *cmsg = NULL;
   int fds[2] = { _fst->outer_sock, _fst->inner_sock };
   union {
-    /* ancillary data buffer, wrapped in a union in order to ensure
-    it is suitably aligned */
     char buf[CMSG_SPACE(sizeof(fds))];
     struct cmsghdr align;
   } u;
@@ -136,8 +137,6 @@ ssize_t send_forged_sockets2(int fd, forged_sockets_t const * const _fst) {
   struct cmsghdr *cmsg = NULL;
   int fds[2] = { _fst->outer_sock, _fst->inner_sock };
   union {
-    /* ancillary data buffer, wrapped in a union in order to ensure
-    it is suitably aligned */
     char buf[CMSG_SPACE(sizeof(fds))];
     struct cmsghdr align;
   } u;

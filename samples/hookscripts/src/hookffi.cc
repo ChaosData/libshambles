@@ -71,7 +71,10 @@ int setup_server(char const * const _path) {
   memset(&addr, 0, sizeof(addr));
 
   addr.sun_family = AF_LOCAL;
-  strcpy(addr.sun_path, _path);
+  strncpy(addr.sun_path, _path, sizeof(addr.sun_path)-1);
+  //strcpy(addr.sun_path, _path); //generally cli input, this is faster
+                                  //n2s: learn to suppress clang-tidy
+  // 107 bytes + 1 NUL (pre-nulled by memset)
 
   unlink(_path);
   if (bind(fd, (struct sockaddr *) &(addr),
@@ -196,6 +199,7 @@ int8_t start(int _fd, uds_data_t* _data) {
     }
 
     /* Iterate through header to find if there is a file descriptor */
+    bool sockets_found = false;
     for(control_message = CMSG_FIRSTHDR(&message);
         control_message != NULL;
         control_message = CMSG_NXTHDR(&message,
@@ -203,7 +207,13 @@ int8_t start(int _fd, uds_data_t* _data) {
       if( (control_message->cmsg_level == SOL_SOCKET) &&
           (control_message->cmsg_type == SCM_RIGHTS) ) {
         memcpy(sent_fd, CMSG_DATA(control_message), sizeof(int)*2);
+        sockets_found = true;
+
       }
+    }
+    if (!sockets_found) {
+      fprintf(stderr, "No sockets received.\n");
+      return -1;
     }
 
     DEBUG_printf("outer_sock: %d, inner_sock: %d\n", sent_fd[0], sent_fd[1]);
