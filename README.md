@@ -20,9 +20,9 @@ connection is finished.
 libshambles is written in C++ (compiled as C++14), but provides C bindings for
 its public API. It is released under a two-clause BSD license.
 
-See
-[https://www.nccgroup.trust/us/about-us/newsroom-and-events/blog/2015/october/libshambles](https://www.nccgroup.trust/us/about-us/newsroom-and-events/blog/2015/october/libshambles)
-for my blog post introducing libshambles and the rationale behind it.
+For more information, see my 
+[blog post](https://www.nccgroup.trust/us/about-us/newsroom-and-events/blog/2015/october/libshambles)
+introducing libshambles and the rationale behind it.
 
 # Quickstart
 
