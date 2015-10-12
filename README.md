@@ -35,6 +35,14 @@ libshambles, and Python/Ruby scripts wrapping a native (C++14) file descriptor
 accepting daemon. These tools are provided in the `samples` directory. You'll
 probably want to run the following across three separate terminal sessions:
 
+## WARNING
+
+The `scan` and `shambles` daemons currently communicate over an unauthenticated
+plaintext connection (IPv4/TCP). You should be careful not to expose the
+`shambles` listener to the local network. Also be careful with respect to
+anything on the host running it, as  they would be able to abuse the
+functionality.
+
 #### Compile and load the `forge_socket` kernel module, load the `nf_conntrack_ipv4` module, and build libshambles:
 ```bash
 $ git clone https://github.com/iSECPartners/libshambles
