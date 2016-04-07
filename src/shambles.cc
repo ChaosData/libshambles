@@ -163,3 +163,47 @@ ssize_t send_forged_sockets2(int fd, forged_sockets_t const * const _fst) {
 
   return sendmsg(fd, &msg, 0);
 }
+
+
+
+ssize_t send_forged_sockets3(int fd, forged_sockets_t const * const _fst, pkt_data_t const * const _pdt) {
+
+  struct msghdr msg = {0,0,0,0,0,0,0};
+  struct iovec iov[1];
+  struct cmsghdr *cmsg = NULL;
+  int fds[2] = { _fst->outer_sock, _fst->inner_sock };
+  union {
+    char buf[CMSG_SPACE(sizeof(fds))];
+    struct cmsghdr align;
+  } u;
+  int *fdptr;
+
+  char data_fallback[] = "\x00\x00" "shambles";
+  uint32_t dsize = sizeof(_pdt->msg_len) + _pdt->msg_len;
+  char* data = (char*)malloc(dsize);
+  if (data != nullptr) {
+    memcpy(data, &(_pdt->msg_len), sizeof(_pdt->msg_len));
+    memcpy(data + sizeof(_pdt->msg_len), _pdt->msg, _pdt->msg_len);
+  } else {
+    data = data_fallback;
+    dsize = sizeof(data_fallback);
+  }
+  iov[0].iov_base = data;
+  iov[0].iov_len = dsize;
+
+  msg.msg_control = u.buf;
+  msg.msg_controllen = sizeof(u.buf);
+  msg.msg_name = NULL;
+  msg.msg_namelen = 0;
+  msg.msg_iov = iov;
+  msg.msg_iovlen = 1;
+
+  cmsg = CMSG_FIRSTHDR(&msg);
+  cmsg->cmsg_level = SOL_SOCKET;
+  cmsg->cmsg_type = SCM_RIGHTS;
+  cmsg->cmsg_len = CMSG_LEN(sizeof(int) * 2);
+  fdptr = (int *) CMSG_DATA(cmsg);
+  memcpy(fdptr, fds, sizeof(int) * 2);
+  free(data);
+  return sendmsg(fd, &msg, 0);
+}

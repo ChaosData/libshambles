@@ -70,7 +70,7 @@ ssize_t send_forged_sockets(forged_sockets_t const * const _fst,
                            char const * const _path);
 
 ssize_t send_forged_sockets2(int fd, forged_sockets_t const * const _fst);
-
+ssize_t send_forged_sockets3(int fd, forged_sockets_t const * const _fst, pkt_data_t const * const _pdt);
 }
 
 #endif
