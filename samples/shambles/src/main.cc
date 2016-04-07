@@ -121,6 +121,11 @@ void onUdsRead(uv_stream_t* sock, ssize_t nread, const uv_buf_t *buf) noexcept {
 
 }
 
+void onUdsWriteEnd(uv_write_t *req, int status) {
+  (void)req;
+  (void)status;
+}
+
 void onUdsConnect(uv_connect_t* conn, int status) noexcept {
   DEBUG_printf("%s\n", __func__ );
 
@@ -139,7 +144,7 @@ void onUdsConnect(uv_connect_t* conn, int status) noexcept {
     close(fst->outer_sock);
     close(fst->inner_sock);
     free(fst);
-    
+
     pkt_data_t* pdt = uds_state[(uv_pipe_t*)conn->handle];
     intercept_teardown(pdt, outer_addr, inner_addr);
     uds_state.erase((uv_pipe_t*)conn->handle);
@@ -166,12 +171,26 @@ void onUdsConnect(uv_connect_t* conn, int status) noexcept {
   } else {
     DEBUG_printf("sending forged packets\n");
     send_forged_sockets2(real_uds_fd, fst);
-    
+
     //closing local handle to sockets
     close(fst->outer_sock);
     close(fst->inner_sock);
     free(fst);
     fst_state.erase((uv_pipe_t*)conn->handle);
+    pkt_data_t* pdt = uds_state[(uv_pipe_t*)conn->handle];
+    uint32_t dsize = sizeof(pdt->msg_len) + pdt->msg_len;
+    char* data = (char*)malloc(dsize);
+    if (data != nullptr) {
+      memcpy(data, &(pdt->msg_len), sizeof(pdt->msg_len));
+      memcpy(data + sizeof(pdt->msg_len), pdt->msg, pdt->msg_len);
+      send(real_uds_fd, data, dsize, 0);
+      // uv_buf_t buf = uv_buf_init(data, dsize);
+      // uv_write_t write_req;
+      // if (uv_write(&write_req, (uv_stream_t*) conn->handle, &buf, 1, onUdsWriteEnd)) {
+      //   // :(
+      // }
+    }
+
 
     uv_read_start((uv_stream_t*) conn->handle, alloc_buffer, onUdsRead);
   }
@@ -261,7 +280,7 @@ void onRead(uv_stream_t* sock, ssize_t nread, const uv_buf_t *buf) noexcept {
     std::copy(buf->base, buf->base+nread, std::back_inserter(v));
 
     if (v.size() >= sizeof(pkt_data_t)-sizeof(uint8_t*)) {
-      uint16_t msg_len = reinterpret_cast<pkt_data_t*>(v.data())->msg_len;
+      uint16_t msg_len = ntohs(reinterpret_cast<pkt_data_t*>(v.data())->msg_len);
       if (v.size() >= sizeof(pkt_data_t)-sizeof(uint8_t*)+msg_len) {
         pkt_data_t* pdt = (pkt_data_t*)malloc(sizeof(pkt_data_t));
         if ( pdt == nullptr ) {
@@ -308,6 +327,7 @@ void onRead(uv_stream_t* sock, ssize_t nread, const uv_buf_t *buf) noexcept {
             v.end()
           );
         }
+        pdt->msg_len = msg_len;
       }
     }
   } else {
@@ -405,7 +425,7 @@ int main(int argc, char const *argv[]) noexcept {
     fprintf(stderr, "Can't get capabilities information, exiting.\n");
     return -7;
   }
- 
+
   cap_value_t cap = CAP_NET_ADMIN;
   cap_flag_value_t has_cap;
   if(cap_get_flag(capabilities, cap, CAP_PERMITTED, &has_cap) != 0) {
@@ -417,7 +437,7 @@ int main(int argc, char const *argv[]) noexcept {
     return -9;
   }
 
-  cap = CAP_NET_RAW; 
+  cap = CAP_NET_RAW;
   if(cap_get_flag(capabilities, cap, CAP_PERMITTED, &has_cap) != 0) {
     fprintf(stderr, "Invalid capability check?\n");
     return -10;
@@ -449,12 +469,12 @@ int main(int argc, char const *argv[]) noexcept {
     fprintf(stderr, "Error setting capabilities flags, exiting.\n");
     return -14;
   }
-  
+
 
   if (cap_set_proc(capabilities) == -1) {
     fprintf(stderr, "Can't set restricted capabilities subset, exiting.\n");
     return -15;
-  } 
+  }
 
 
   if ( cap_free(capabilities) == -1 ) {
