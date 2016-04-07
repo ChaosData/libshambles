@@ -28,6 +28,7 @@ from ctypes import *
 import sys
 import socket
 import time
+import struct
 
 libName = './lib/hookffi.so'
 hookffi = CDLL(libName)
@@ -41,29 +42,36 @@ class uds_data(Structure):
 
 HOOKFUNC = CFUNCTYPE(c_int, POINTER(uds_data))
 
+get_injected_packet = hookffi.get_injected_packet
+get_injected_packet.restype = POINTER(c_char)
+get_injected_packet.argtypes = [POINTER(uds_data)]
+
+
 def hook(uds_datap):
   outer_sock = socket.fromfd(uds_datap.contents.outer_sock, socket.AF_INET,
                               socket.SOCK_STREAM, 0)
   inner_sock = socket.fromfd(uds_datap.contents.inner_sock, socket.AF_INET,
                               socket.SOCK_STREAM, 0)
-  custom_hook(outer_sock, inner_sock)
+  size_packet = get_injected_packet(uds_datap)
+  size = struct.unpack("=H", size_packet[:2])[0]
+  packet = size_packet[2:2+size]
+  custom_hook(outer_sock, inner_sock, packet)
   hookffi.teardown(uds_datap)
   return 0
 
 
-def custom_hook(outer_sock, inner_sock):
+def custom_hook(outer_sock, inner_sock, packet=""):
   print "hooked!"
-  print "Client says: " + inner_sock.recv(1024)
-  inner_sock.sendall("YO CLIENT, THIS IS PYTHON!\n")
+  print "Client sent: " + repr(packet)
 
-  inner_sock.close()
-
-  outer_sock.sendall("YO SERVER, THIS IS PYTHON!\n")
-  print "Server says: " + outer_sock.recv(1024)
+  outer_sock.sendall(packet.replace("Hello", "Goodbye"))
+  rpacket = outer_sock.recv(4096)
+  print "Server replied: " + repr(rpacket)
   outer_sock.close()
-
-
-
+  
+  npacket = inner_sock.recv(4096)
+  print "Client replied: " + npacket
+  inner_sock.close()
 
 
 def main():
@@ -86,4 +94,3 @@ def main():
 
 if __name__ == "__main__":
   main()
-

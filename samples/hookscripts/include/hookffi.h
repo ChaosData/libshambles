@@ -48,9 +48,11 @@ int setup_server(char const * const _path);
 int8_t allow_user(char const * const _path, char const * const _user);
 int8_t register_hook(hook_cb* _hcb);
 int8_t start(int _fd, uds_data_t* _data);
+char* get_injected_packet(uds_data_t const * const _data);
 int teardown(uds_data_t* _data);
 
 int close_forged_sockets_early(uds_data_t* _data);
+
 
 }
 

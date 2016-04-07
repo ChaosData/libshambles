@@ -94,7 +94,7 @@ int setup_server(char const * const _path) {
 
 bool is_numeric(const std::string& s) {
     return !s.empty() && std::find_if(
-        s.begin(), 
+        s.begin(),
         s.end(),
         [](char c) {
           return !std::isdigit(c);
@@ -154,7 +154,7 @@ int8_t start(int _fd, uds_data_t* _data) {
 
     int peer = accept(_fd, (struct sockaddr*)&remote, (socklen_t *)&len);
     DEBUG_printf("peer: %d\n", peer);
-    
+
 
     pid = fork(); // https://github.com/ffi/ffi/issues/241
     if (pid == -1) {
@@ -177,7 +177,7 @@ int8_t start(int _fd, uds_data_t* _data) {
       struct cmsghdr align;
     } u;
 
-    char data[1];
+    char data[9]; //"shambles"
     int res;
 
     memset(&message, 0, sizeof(struct msghdr));
@@ -227,6 +227,20 @@ int8_t start(int _fd, uds_data_t* _data) {
   return 1;
 }
 
+char* get_injected_packet(uds_data_t const * const _data) {
+  //char ambles[7];
+  //recv(_data->uds_client, ambles, sizeof(ambles), 0);
+  //puts(ambles);
+  uint16_t len = 0;
+  printf("len: %hu\n", len);
+  recv(_data->uds_client, &len, sizeof(len), 0);
+  char* buf = (char*)malloc(len + sizeof(len));
+  memcpy(buf, &len, sizeof(len));
+  recv(_data->uds_client, buf+sizeof(len), len, 0);
+  return buf;
+}
+
+
 int teardown(uds_data_t* _data) {
   DEBUG_printf("%s\n", __func__);
   close(_data->outer_sock);
@@ -242,10 +256,8 @@ int close_forged_sockets_early(uds_data_t* _data) {
 
   //used b/c of conntrack/snat/dnat quirk
   send(_data->inner_sock, "\x00", 1, 0);
-  
+
   close(_data->outer_sock);
   close(_data->inner_sock);
   return 0;
 }
-
-
