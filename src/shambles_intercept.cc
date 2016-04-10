@@ -54,6 +54,17 @@ constexpr static uint16_t dnat_size = sizeof(dnat)    - 1                       
 constexpr static char const snat[] = "iptables -t nat -%c POSTROUTING -m state --state INVALID,NEW,RELATED,ESTABLISHED -p tcp -s %s --sport %hu -d %s --dport %hu -j SNAT --to-source %s:%hu";
 constexpr static uint16_t snat_size = sizeof(snat)    - 1                                                                      + 14         + 2  + 14         + 2                   + 14 + 2;
 
+constexpr static char const temp[] =
+  "iptables -I INPUT -p tcp -s %s --sport %hu -d %s --dport %hu -j ACCEPT "
+  "&& "
+  "echo 'iptables -D INPUT -p tcp -s %s --sport %hu -d %s --dport %hu -j ACCEPT'"
+    "| at now + 1 minutes;"
+;
+constexpr static uint16_t temp_size = sizeof(temp)-1
+                                      + 14 + 2 + 14 + 2
+                                      + 14 + 2 + 14 + 2;
+
+
 //constexpr static char const conntrackD[] = "conntrack -D --orig-src %s --orig-dst %s -p tcp --orig-port-src %hu --orig-port-dst %hu --reply-port-src %hu --reply-port-dst %hu --reply-src %s --reply-dst %s";
 //constexpr static uint16_t conntrackD_size = sizeof(conntrackD)    + 13          + 13                        + 2                 + 2                  + 2                  + 2           + 13           + 13;
 
@@ -62,7 +73,7 @@ constexpr static uint16_t snat_size = sizeof(snat)    - 1                       
 
 
 
-int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd,
+int8_t intercept_old(forged_sockets_t* _out, pkt_data_t const * const _pd,
                  uint32_t const _outer_addr, uint32_t const _inner_addr) {
 
   DEBUG_printf("%s\n", __func__);
@@ -232,7 +243,6 @@ int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd,
   return 1;
 }
 
-
 int8_t intercept_teardown(pkt_data_t const * const _pd,
                           uint32_t const _outer_addr,
                           uint32_t const _inner_addr) {
@@ -269,5 +279,241 @@ int8_t intercept_teardown(pkt_data_t const * const _pd,
   
   return 0;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int const yes = 1;
+int const no = 0;
+
+int8_t prepare_repair_socket(int sock) {
+  int ret;
+  ret = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
+  if (ret != 0) {
+    return -1;
+  }
+
+  ret = setsockopt(sock, IPPROTO_TCP, TCP_REPAIR, &yes, sizeof(yes));
+  if (ret != 0) {
+    return -2;
+  }
+  return 1;
+}
+
+
+int8_t configure_socket_vanilla(int sock, uint32_t seq, uint32_t ack,
+                                in_addr_t src_addr, uint16_t nsrc_port,
+                                in_addr_t dst_addr, uint16_t ndst_port) {
+  int ret = 0;
+  int qid;
+
+  qid = TCP_SEND_QUEUE;
+  ret = setsockopt(sock, IPPROTO_TCP, TCP_REPAIR_QUEUE, &qid, sizeof(qid));
+  if (ret != 0) {
+    return -1;
+  }
+  ret = setsockopt(sock, IPPROTO_TCP, TCP_QUEUE_SEQ, &seq, sizeof(seq));
+  if (ret != 0) {
+    return -2;
+  }
+
+  qid = TCP_RECV_QUEUE;
+  ret = setsockopt(sock, IPPROTO_TCP, TCP_REPAIR_QUEUE, &qid, sizeof(qid));
+  if (ret != 0) {
+    return -3;
+  }
+  ret = setsockopt(sock, IPPROTO_TCP, TCP_QUEUE_SEQ, &ack, sizeof(ack));
+  if (ret != 0) {
+    return -4;
+  }
+
+
+  struct sockaddr_in src;
+  src.sin_family = AF_INET;
+  src.sin_addr.s_addr = src_addr;
+  src.sin_port = nsrc_port;
+
+  ret = bind(sock, (struct sockaddr *)&src, sizeof(src));
+  if (ret != 0) {
+    return -4;
+  }
+
+  struct sockaddr_in dst;
+  dst.sin_family = AF_INET;
+  dst.sin_addr.s_addr = dst_addr;
+  dst.sin_port = ndst_port;
+
+  ret = connect(sock, (struct sockaddr *) &dst, sizeof(dst));
+  if (ret != 0) {
+    return -5;
+  }
+  return 1;
+}
+
+int8_t engage_socket(int sock) {
+  int ret;
+
+  ret = setsockopt(sock, IPPROTO_TCP, TCP_REPAIR, &no, sizeof(no));
+  if (ret != 0) {
+    return -1;
+  }
+
+  ret = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
+  if (ret != 0) {
+    return -2;
+  }
+
+  return 1;
+}
+
+int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd,
+                 uint32_t const _outer_addr, uint32_t const _inner_addr) {
+
+  DEBUG_printf("%s\n", __func__);
+  #ifdef DEBUG
+  pkt_data_dump(_pd);
+  #endif
+
+  char inner_addr_str[16] = {0};
+  inet_ntoa_r(inner_addr_str, _inner_addr);
+
+  char outer_addr_str[16] = {0};
+  inet_ntoa_r(outer_addr_str, _outer_addr);
+
+  puts(outer_addr_str);
+  char dst_addr[16] = {0};
+  inet_ntoa_r(dst_addr, _pd->dst_addr);
+
+  char src_addr[16] = {0};
+  inet_ntoa_r(src_addr, _pd->src_addr);
+
+
+  DEBUG_printf("Deleting old conntrack entry.");
+  int32_t delret = conntrack_ipv4_tcp<Conntrack::Delete>(
+      _pd->src_addr, _pd->dst_addr,
+      _pd->src_port, _pd->dst_port,
+      _pd->dst_port, _pd->src_port,
+      _pd->dst_addr, _outer_addr
+  );
+  if (delret != 1) {
+    printf("delret: %d\n", delret);
+    return -1;
+  }
+
+
+  DEBUG_printf("Injecting new conntrack entry.");
+  int32_t injret = conntrack_ipv4_tcp<Conntrack::Inject>(
+      _outer_addr, _pd->dst_addr,
+      _pd->src_port, _pd->dst_port,
+      _pd->dst_addr, _outer_addr,
+      _pd->dst_port, _pd->src_port
+  );
+  if (injret != 1) {
+    printf("injret: %d\n", injret);
+    return -2;
+  }
+
+
+  char dnat_command[dnat_size] = {0};
+  snprintf(dnat_command, dnat_size, dnat,
+    'A', src_addr, ntohs(_pd->src_port), dst_addr, ntohs(_pd->dst_port),
+    inner_addr_str, ntohs(_pd->dst_port)
+  );
+  DEBUG_printf("# %s\n", dnat_command);
+  system(dnat_command);
+
+
+  char snat_command[snat_size] = {0};
+  snprintf(snat_command, snat_size, snat,
+    'A', inner_addr_str, ntohs(_pd->dst_port), src_addr, ntohs(_pd->src_port),
+    dst_addr, ntohs(_pd->dst_port)
+  );
+  DEBUG_printf("# %s\n", snat_command);
+  system(snat_command);
+
+
+
+  int client_sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+  if (client_sock == -1) {
+    perror("intercept:socket->client_sock");
+    return -5;
+  }
+
+
+  int server_sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+  if (server_sock == -1) {
+    perror("intercept:socket->server_sock");
+    close(client_sock);
+    return -6;
+  }
+
+  if (prepare_repair_socket(client_sock) != 1) {
+    close(client_sock);
+    close(server_sock);
+    return -7;
+  }
+  if (prepare_repair_socket(server_sock) != 1) {
+    close(client_sock);
+    close(server_sock);
+    return -8;
+  }
+
+
+  if (configure_socket_vanilla(client_sock, ntohl(_pd->ack), ntohl(_pd->seq),
+                               _inner_addr, _pd->dst_port,
+                               _pd->src_addr, _pd->src_port) != 1) {
+    close(client_sock);
+    close(server_sock);
+    return -9;
+  }
+
+
+  if (configure_socket_vanilla(server_sock, ntohl(_pd->seq), ntohl(_pd->ack),
+                               _outer_addr, _pd->src_port,
+                               _pd->dst_addr, _pd->dst_port) != 1) {
+    close(client_sock);
+    close(server_sock);
+    return -9;
+  }
+
+  char temp_command[temp_size] = {0};
+  snprintf(temp_command, temp_size, temp,
+    dst_addr, ntohs(_pd->dst_port), outer_addr_str, ntohs(_pd->src_port),
+    dst_addr, ntohs(_pd->dst_port), outer_addr_str, ntohs(_pd->src_port)
+  );
+  printf("# %s\n", temp_command);
+  system(temp_command);
+
+
+  if (engage_socket(client_sock) != 1) {
+    close(client_sock);
+    close(server_sock);
+    return -10;
+  }
+
+  if (engage_socket(server_sock) != 1) {
+    close(client_sock);
+    close(server_sock);
+    return -11;
+  }
+  
+  _out->outer_sock = server_sock;
+  _out->inner_sock = client_sock;
+
+  return 1;
+}
+
 
 

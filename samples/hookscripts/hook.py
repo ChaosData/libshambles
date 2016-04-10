@@ -61,17 +61,27 @@ def hook(uds_datap):
 
 
 def custom_hook(outer_sock, inner_sock, packet=""):
-  print "hooked!"
-  print "Client sent: " + repr(packet)
+  try:
+    print "hooked!"
+    print "Client sent: " + repr(packet)
 
-  outer_sock.sendall(packet.replace("Hello", "Goodbye"))
-  rpacket = outer_sock.recv(4096)
-  print "Server replied: " + repr(rpacket)
-  outer_sock.close()
-  
-  npacket = inner_sock.recv(4096)
-  print "Client replied: " + npacket
-  inner_sock.close()
+    #outer_sock.sendall(len(packet)*"Z")
+    #outer_sock.sendall(packet.replace("hello", "goodbye"))
+
+    #inner_sock.sendall("YOLO1\n")
+    npacket = inner_sock.recv(4096)
+    print "Client replied: " + repr(npacket)
+    inner_sock.sendall("YOLO2\n")
+    inner_sock.close()
+
+    #outer_sock.sendall("#YOLOL!\n");
+    rpacket = outer_sock.recv(4096)
+    print "Server replied: " + repr(rpacket)
+    outer_sock.sendall("#YOLOL!\n");
+    outer_sock.close()
+  except:
+    print "except"
+    pass
 
 
 def main():

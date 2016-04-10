@@ -182,7 +182,17 @@ int32_t conntrack_ipv4_tcp(uint32_t orig_src_addr, uint32_t orig_dst_addr,
   }
 
   if (std::is_same<T, Conntrack::Inject>::value) {
+    mnl_attr_put_u32(hdr, 3 /*CTA_STATUS*/,
+        htonl( 0 |
+          (1 << 1 /*IPS_SEEN_REPLY_BIT*/) /*IPS_SEEN_REPLY*/ |
+          (1 << 2 /*IPS_ASSURED_BIT*/) /*IPS_ASSURED*/ |
+          (1 << 3 /*IPS_CONFIRMED_BIT*/) /*IPS_CONFIRMED*/
+        )
+    );
+
     mnl_attr_put_u32(hdr, 7 /*CTA_TIMEOUT*/, timeout);
+    //mnl_attr_put_u32(hdr, 8 /*CTA_MARK*/, htonl(31337));
+
 
     struct nlattr *nest, *nest_proto;
     nest = mnl_attr_nest_start(hdr, 4 /*CTA_PROTOINFO*/);
@@ -199,6 +209,7 @@ int32_t conntrack_ipv4_tcp(uint32_t orig_src_addr, uint32_t orig_dst_addr,
 
     mnl_attr_put_u8(hdr, 1 /*CTA_PROTOINFO_TCP_STATE*/,
                          3 /*TCP_CONNTRACK_ESTABLISHED*/);
+
 
     mnl_attr_nest_end(hdr, nest_proto);
     mnl_attr_nest_end(hdr, nest);

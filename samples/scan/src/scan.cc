@@ -125,6 +125,9 @@ bool tcp_handler(uint32_t rsize, const uint8_t* bytes) {
 //  const uint8_t* match = strnstrn(payload, rsize, query, strlen((char*)query));
 //  if (match != nullptr) {
   if(std::regex_search(std::string((char*)payload, payload_size), regex)) {
+    DEBUG_printf("rsize: %u\n", rsize);
+    DEBUG_printf("hdr_size: %u\n", hdr_size);
+    DEBUG_printf("payload_size: %u\n", payload_size);
     pdt.src_port = hdr->th_sport;
     pdt.dst_port = hdr->th_dport;
     pdt.seq = htonl(ntohl(hdr->th_seq) + payload_size);
@@ -156,10 +159,13 @@ bool ip_handler(uint32_t rsize, const uint8_t* bytes) {
     }
 
     uint8_t hdr4_size = ihl*4;
+    uint16_t ip_size = ntohs(hdr4->ip_len);
+    DEBUG_printf("ip_size: %u\n", ip_size);
+
     const uint8_t* payload = bytes + hdr4_size;
     switch(hdr4->ip_p) {
       case IPPROTO_TCP:
-         if ( tcp_handler(rsize - hdr4_size, payload) ) {
+         if ( tcp_handler(/*rsize*/ip_size - hdr4_size, payload) ) {
            pdt.src_addr = hdr4->ip_src.s_addr;
            pdt.dst_addr = hdr4->ip_dst.s_addr;
            return true;
@@ -188,6 +194,7 @@ void eth_handler(uint8_t* user, const struct pcap_pkthdr* pkthdr, const uint8_t*
   (void)user;
   DEBUG_printf("GOT ONE!\n");
   uint32_t capturedSize = pkthdr->caplen;
+  DEBUG_printf("capturedSize: %u, len: %u\n", capturedSize, pkthdr->len);
   ether_header* hdr = (ether_header*)bytes;
 
 

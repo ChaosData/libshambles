@@ -175,6 +175,9 @@ void onUdsConnect(uv_connect_t* conn, int status) noexcept {
     //closing local handle to sockets
     close(fst->outer_sock);
     close(fst->inner_sock);
+
+
+    
     free(fst);
     fst_state.erase((uv_pipe_t*)conn->handle);
     pkt_data_t* pdt = uds_state[(uv_pipe_t*)conn->handle];
@@ -212,8 +215,10 @@ int8_t onPktDataReceived(uv_stream_t* sock, pkt_data_t* pdt) noexcept {
   }
   forged_sockets_t* fst = (forged_sockets_t*)malloc(sizeof(forged_sockets_t));
 
-  if (intercept(fst, pdt, outer_addr, inner_addr) != 1) {
-    fprintf(stderr, "Can't setup intercept\n");
+  int ret = intercept(fst, pdt, outer_addr, inner_addr);
+  if (ret != 1) {
+    fprintf(stderr, "Can't setup intercept: %d\n", ret);
+
     free(fst);
     uv_close((uv_handle_t*) sock, free_socket);
     return -1;
