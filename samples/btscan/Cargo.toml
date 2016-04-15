@@ -1,0 +1,22 @@
+[package]
+name = "btscan"
+version = "0.1.0"
+authors = ["jtd"]
+
+[dependencies]
+docopt = "0.6"
+rustc-serialize = "0.3"
+regex = "0.1"
+num_cpus = "0.2"
+libc = "0.2"
+kirk = { git = "https://github.com/kinghajj/kirk" }
+r2d2 = "0.6"
+
+pcap = "0.5"
+#pnet = "0.8.1"
+pnet = { git = "https://github.com/polachok/libpnet.git", rev = "8a655de43d88ec997ee97223c7f307096c335449" }
+fnv = "1.0"
+
+[dependencies.crossbeam]
+git = "https://github.com/aturon/crossbeam.git"
+branch = "master"
