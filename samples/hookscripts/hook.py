@@ -57,10 +57,59 @@ def hook(uds_datap):
   packet = size_packet[2:2+size]
   custom_hook(outer_sock, inner_sock, packet)
   hookffi.teardown(uds_datap)
-  return 0
+  sys.exit(0)
 
+
+from twisted.internet.protocol import Protocol, Factory
+from twisted.internet import reactor
+from socket import AF_INET
+
+class Echo(Protocol):
+  def connectionMade(self):
+    pass
+  def dataReceived(self, data):
+    print self.factory.name + ":recv => " + repr(data)
+    #self.factory.echoer.transport.write(data)
+    self.factory.echoer.send(data)
+
+  def connectionLost(self, reason):
+    print "connectionLost"
+    #self.stopListening()
+    #reactor.stop()
+    reactor.callFromThread(reactor.stop)
+
+class EchoFactory(Factory):
+  protocol = Echo
+  def __init__(self, name, peer_port):
+    self.echoer = peer_port
+    self.name = name
 
 def custom_hook(outer_sock, inner_sock, packet=""):
+  print "hooked!"
+  print "Client sent: " + repr(packet)
+
+  try:
+    inner_sock.setblocking(False)
+    outer_sock.setblocking(False)
+
+    inner_port = reactor.adoptStreamConnection(
+      inner_sock.fileno(), AF_INET, EchoFactory("inner", outer_sock)
+    )
+
+    outer_port = reactor.adoptStreamConnection(
+      outer_sock.fileno(), AF_INET, EchoFactory("outer", inner_sock)
+    )
+
+    #inner_sock.close()
+    #outer_sock.close()
+
+    reactor.run()
+
+    #stoppedDeferred = [inner_port.stopListening(), outer_sock.stopListening()]
+  except:
+    print "except"
+
+def custom_hook_old(outer_sock, inner_sock, packet=""):
   try:
     print "hooked!"
     print "Client sent: " + repr(packet)
@@ -68,13 +117,13 @@ def custom_hook(outer_sock, inner_sock, packet=""):
     #outer_sock.sendall(len(packet)*"Z")
     #outer_sock.sendall(packet.replace("hello", "goodbye"))
 
-    #inner_sock.sendall("YOLO1\n")
+    inner_sock.sendall("YOLO1\n")
     npacket = inner_sock.recv(4096)
     print "Client replied: " + repr(npacket)
     inner_sock.sendall("YOLO2\n")
     inner_sock.close()
 
-    #outer_sock.sendall("#YOLOL!\n");
+    outer_sock.sendall("#YOLOL!\n");
     rpacket = outer_sock.recv(4096)
     print "Server replied: " + repr(rpacket)
     outer_sock.sendall("#YOLOL!\n");

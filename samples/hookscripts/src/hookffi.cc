@@ -37,6 +37,7 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 
 #include <string>
 #include <regex>
@@ -141,6 +142,7 @@ void cleanup(int sig) noexcept {
   exit(0);
 }
 
+
 int8_t start(int _fd, uds_data_t* _data) {
   DEBUG_printf("%s: _fd:%d, _data:%p\n", __func__, _fd, (void*)_data);
 
@@ -163,7 +165,15 @@ int8_t start(int _fd, uds_data_t* _data) {
       continue;
     } else if (pid > 0) {
       close(peer);
+      int status = 0;
+      waitpid(pid, &status, 0);
       continue;
+    } else if (pid == 0) {
+      if (!fork()) {
+        //do stuff by falling through
+      } else {
+        exit(0);
+      }
     }
 
     int sent_fd[2];
