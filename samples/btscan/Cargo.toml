@@ -7,6 +7,8 @@ authors = ["jtd"]
 docopt = "0.6"
 rustc-serialize = "0.3"
 regex = "0.1"
+#lazy_static = "0.2"
+chan-signal = "0.1"
 num_cpus = "0.2"
 libc = "0.2"
 kirk = { git = "https://github.com/kinghajj/kirk" }

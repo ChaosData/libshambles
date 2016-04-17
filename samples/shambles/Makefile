@@ -19,10 +19,10 @@ vdebug: build/main.o build/util.o
 	${CXX} ${CXXFLAGS} ${DEBUG} ${INCS} ${LINK} ${OUTPUT} build/main.o build/util.o ${LIBS}
 
 build/main.o: src/main.cc
-	${CXX} ${CXXFLAGS} ${INCS} -o build/main.o -c src/main.cc
+	${CXX} ${CXXFLAGS} ${DEBUG} ${INCS} -o build/main.o -c src/main.cc
 
 build/util.o: src/util.cc
-	${CXX} ${CXXFLAGS} ${INCS} -o build/util.o -c src/util.cc
+	${CXX} ${CXXFLAGS} ${DEBUG} ${INCS} -o build/util.o -c src/util.cc
 
 clean:
 	rm shambles build/main.o build/util.o

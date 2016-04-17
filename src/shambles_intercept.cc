@@ -57,7 +57,7 @@ constexpr static uint16_t snat_size = sizeof(snat)    - 1                       
 constexpr static char const temp[] =
   "iptables -I INPUT -p tcp -s %s --sport %hu -d %s --dport %hu -j ACCEPT "
   "&& "
-  "echo 'iptables -D INPUT -p tcp -s %s --sport %hu -d %s --dport %hu -j ACCEPT'"
+  "echo 'iptables -w -D INPUT -p tcp -s %s --sport %hu -d %s --dport %hu -j ACCEPT'"
     "| at now + 1 minutes;"
 ;
 constexpr static uint16_t temp_size = sizeof(temp)-1
@@ -413,6 +413,7 @@ int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd,
   }
 
 
+/*
   DEBUG_printf("Injecting new conntrack entry.");
   int32_t injret = conntrack_ipv4_tcp<Conntrack::Inject>(
       _outer_addr, _pd->dst_addr,
@@ -424,7 +425,7 @@ int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd,
     printf("injret: %d\n", injret);
     return -2;
   }
-
+*/
 
   char dnat_command[dnat_size] = {0};
   snprintf(dnat_command, dnat_size, dnat,
@@ -487,6 +488,7 @@ int8_t intercept(forged_sockets_t* _out, pkt_data_t const * const _pd,
     close(server_sock);
     return -9;
   }
+
 
   char temp_command[temp_size] = {0};
   snprintf(temp_command, temp_size, temp,

@@ -31,9 +31,10 @@
 #include <string>
 
 #ifdef DEBUG
-  #define DEBUG_printf(...) fprintf(stderr, __VA_ARGS__)
+#define DEBUG_printf(...) (void)0
+//#define DEBUG_printf(...) fprintf(stderr, __VA_ARGS__)
 #else
-  #define DEBUG_printf(...) (void)0
+#define DEBUG_printf(...) (void)0
 #endif
 
 uint8_t parse_ipv4(const char* str, uint64_t len);

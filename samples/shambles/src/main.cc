@@ -32,6 +32,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <sys/capability.h>
+#include <sys/socket.h>
 
 #include <uv.h>
 
@@ -53,6 +54,21 @@ char const * uds_path = nullptr;
 uint32_t outer_addr = 0;
 uint32_t inner_addr = 0;
 uint32_t netmask = 0;
+
+struct sockaddr_in teardown_addr;
+int teardown_sock = 0;
+
+int count = 0;
+
+void send_teardown(pkt_data_t const* pdt) {
+  printf("%s\n", __func__);
+  count -= 1;
+  printf("count: %d\n", count);
+  sendto(teardown_sock, (void*)pdt, 12, 0,
+         (struct sockaddr const *)&teardown_addr,
+         sizeof(teardown_addr));
+}
+
 
 std::string teardown = "teardown";
 
@@ -84,20 +100,18 @@ void onUdsRead(uv_stream_t* sock, ssize_t nread, const uv_buf_t *buf) noexcept {
       //uv_close((uv_handle_t*) sock, free_socket);
       //free(sock);
     } else {
-      DEBUG_printf("%s: got EOF\n", __func__);
-      uv_close((uv_handle_t*) sock, free_socket);
+      printf("%s: got EOF\n", __func__);
     }
     if (uds_state.find((uv_pipe_t*)sock) != uds_state.end()) {
       pkt_data_t* pdt = uds_state[(uv_pipe_t*)sock];
       intercept_teardown(pdt, outer_addr, inner_addr);
-
+      send_teardown(pdt);
       uds_state.erase((uv_pipe_t*)sock);
       if (pdt->msg) {
         free(pdt->msg);
       }
       free(pdt);
     }
-
   } else {
     std::vector<char>& v = streams[sock];
     std::copy(buf->base, buf->base+nread, std::back_inserter(v));
@@ -106,6 +120,7 @@ void onUdsRead(uv_stream_t* sock, ssize_t nread, const uv_buf_t *buf) noexcept {
         DEBUG_printf("tearing down rules\n");
         pkt_data_t* pdt = uds_state[(uv_pipe_t*)sock];
         intercept_teardown(pdt, outer_addr, inner_addr);
+        send_teardown(pdt);
         uds_state.erase((uv_pipe_t*)sock);
         if(pdt->msg) {
           free(pdt->msg);
@@ -130,7 +145,7 @@ void onUdsConnect(uv_connect_t* conn, int status) noexcept {
   DEBUG_printf("%s\n", __func__ );
 
   if (status < 0) {
-    DEBUG_printf("onUdsConnect:conn->handle: %p\n", conn->handle);
+    DEBUG_printf("onUdsConnect:conn->handle: %p\n", (void*)conn->handle);
     fprintf(stderr, "UDS error: %s\n", uv_strerror(status));
     forged_sockets_t* fst = fst_state[(uv_pipe_t*)conn->handle];
     fst_state.erase((uv_pipe_t*)conn->handle);
@@ -147,6 +162,7 @@ void onUdsConnect(uv_connect_t* conn, int status) noexcept {
 
     pkt_data_t* pdt = uds_state[(uv_pipe_t*)conn->handle];
     intercept_teardown(pdt, outer_addr, inner_addr);
+    send_teardown(pdt);
     uds_state.erase((uv_pipe_t*)conn->handle);
     if (pdt->msg) {
       free(pdt->msg);
@@ -181,25 +197,29 @@ void onUdsConnect(uv_connect_t* conn, int status) noexcept {
     free(fst);
     fst_state.erase((uv_pipe_t*)conn->handle);
     pkt_data_t* pdt = uds_state[(uv_pipe_t*)conn->handle];
-    uint32_t dsize = sizeof(pdt->msg_len) + pdt->msg_len;
-    char* data = (char*)malloc(dsize);
-    if (data != nullptr) {
-      memcpy(data, &(pdt->msg_len), sizeof(pdt->msg_len));
-      memcpy(data + sizeof(pdt->msg_len), pdt->msg, pdt->msg_len);
-      send(real_uds_fd, data, dsize, 0);
+    //uint32_t dsize = sizeof(pdt->msg_len) + pdt->msg_len;
+    //char* data = (char*)malloc(dsize);
+    //if (data != nullptr) {
+      //memcpy(data, &(pdt->msg_len), sizeof(pdt->msg_len));
+      //memcpy(data + sizeof(pdt->msg_len), pdt->msg, pdt->msg_len);
+      //send(real_uds_fd, data, dsize, 0);
+      send(real_uds_fd, &(pdt->msg_len), sizeof(pdt->msg_len), 0);
+      send(real_uds_fd, pdt->msg, pdt->msg_len, 0);
       // uv_buf_t buf = uv_buf_init(data, dsize);
       // uv_write_t write_req;
       // if (uv_write(&write_req, (uv_stream_t*) conn->handle, &buf, 1, onUdsWriteEnd)) {
       //   // :(
       // }
-    }
+      
+      //free(data);
+    //}
 
 
     uv_read_start((uv_stream_t*) conn->handle, alloc_buffer, onUdsRead);
   }
-  void* handle = conn->handle;
+  //void* handle = conn->handle;
   free(conn);
-  uv_close((uv_handle_t*) handle, free_socket);
+  //uv_close((uv_handle_t*) handle, free_socket);
 
 }
 
@@ -223,6 +243,7 @@ int8_t onPktDataReceived(uv_stream_t* sock, pkt_data_t* pdt) noexcept {
     uv_close((uv_handle_t*) sock, free_socket);
     return -1;
   }
+  count += 1;
 
   uv_pipe_t* uds_handle = (uv_pipe_t*)malloc(sizeof(uv_pipe_t));
   if (uds_handle == nullptr) {
@@ -237,7 +258,7 @@ int8_t onPktDataReceived(uv_stream_t* sock, pkt_data_t* pdt) noexcept {
   fst_state[uds_handle] = fst;
 
   uv_connect_t* conn = (uv_connect_t*)malloc(sizeof(uv_connect_t));
-  DEBUG_printf("onPktDataReceived:uds_handle: %p\n", uds_handle);
+  DEBUG_printf("onPktDataReceived:uds_handle: %p\n", (void*)uds_handle);
 
 
   uv_pipe_connect(conn, uds_handle, uds_path, onUdsConnect);
@@ -257,7 +278,7 @@ void onRead(uv_stream_t* sock, ssize_t nread, const uv_buf_t *buf) noexcept {
     (unsigned long long)(tv.tv_sec) * 1000 +
     (unsigned long long)(tv.tv_usec) / 1000;
 
-  printf("milliseconds: %llu\n", millisecondsSinceEpoch);
+  DEBUG_printf("milliseconds: %llu\n", millisecondsSinceEpoch);
   #endif
 
   if (nread < 0) {
@@ -268,9 +289,11 @@ void onRead(uv_stream_t* sock, ssize_t nread, const uv_buf_t *buf) noexcept {
       DEBUG_printf("%s: got EOF\n", __func__);
       uv_close((uv_handle_t*) sock, free_socket);
     }
-/*    if (uds_state.find((uv_pipe_t*)sock) != uds_state.end()) {
+/*
+    if (uds_state.find((uv_pipe_t*)sock) != uds_state.end()) {
       pkt_data_t* pdt = uds_state[(uv_pipe_t*)sock];
       intercept_teardown(pdt, outer_addr, inner_addr);
+      send_teardown(pdt);
 
       uds_state.erase((uv_pipe_t*)sock);
       if (pdt->msg) {
@@ -314,6 +337,7 @@ void onRead(uv_stream_t* sock, ssize_t nread, const uv_buf_t *buf) noexcept {
         if (r != 0) {
           if ( r == -2 ) {
             intercept_teardown(pdt, outer_addr, inner_addr);
+            send_teardown(pdt);
           }
 
           if (pdt->msg) {
@@ -353,7 +377,7 @@ void on_new_connection(uv_stream_t *server, int status) noexcept {
     // error!
     return;
   }
-  DEBUG_printf("new connection: %p\n", server);
+  DEBUG_printf("new connection: %p\n", (void*)server);
 
   uv_tcp_t *client = (uv_tcp_t*) malloc(sizeof(uv_tcp_t));
   //blocks will be "possibly lost" in valgrind when ^C-ing b/c we keep the
@@ -385,9 +409,10 @@ void onShutdown(uv_shutdown_t* req, int status) noexcept {
 }
 
 int main(int argc, char const *argv[]) noexcept {
-  if (argc != 7) {
+  if (argc != 9) {
     fprintf(stderr, "Usage: %s <public IP> <internal IP> <internal netmask> "
-                    "<unix domain socket path> <bind address> <bind socket>\n",
+                    "<unix domain socket path> <bind address> <bind socket> "
+                    "<scanner address> <scanner port>\n",
                     argv[0]);
     return -1;
   }
@@ -419,6 +444,17 @@ int main(int argc, char const *argv[]) noexcept {
     fprintf(stderr, "Invalid <bind port> value: %s\n", argv[6]);
     return -6;
   }
+
+  char const * teardown_host = argv[7];
+  int tport = atoi(argv[8]);
+  if ( tport < 0
+        || tport > static_cast<int>(UINT16_MAX)
+        || !is_numeric(std::string(argv[8])) ) {
+    fprintf(stderr, "Invalid <scanner port> value: %s\n", argv[6]);
+    return -6;
+  }
+  uint16_t teardown_port = tport;
+
 
   DEBUG_printf("Validating privileges.\n");
   cap_value_t required_capability_list[2] = { CAP_NET_ADMIN, CAP_NET_RAW };
@@ -512,6 +548,20 @@ int main(int argc, char const *argv[]) noexcept {
     fprintf(stderr, "Listen error %s\n", uv_strerror(r));
     return -13;
   }
+
+  teardown_sock = socket(AF_INET, SOCK_DGRAM, 0);
+  struct hostent *server;
+  server = gethostbyname(teardown_host);
+  if (server == NULL) {
+    fprintf(stderr,"ERROR, no such host as %s\n", teardown_host);
+    exit(1);
+  }
+  
+  memset((void*)&teardown_addr, 0, sizeof(teardown_addr));
+  teardown_addr.sin_family = AF_INET;
+  memcpy((void *)server->h_addr, (void *)&teardown_addr.sin_addr.s_addr,
+         server->h_length);
+  teardown_addr.sin_port = htons(teardown_port);
 
   signal(SIGINT, cleanup);
   puts("Listening...");

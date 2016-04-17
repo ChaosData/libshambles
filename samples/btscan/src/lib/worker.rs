@@ -1,6 +1,6 @@
+extern crate pnet;
 extern crate r2d2;
 extern crate kirk;
-extern crate pnet;
 extern crate pcap;
 extern crate fnv;
 
@@ -11,28 +11,34 @@ use std::sync::Mutex;
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
 
-use pnet::packet::Packet;
-use pnet::packet::ethernet::{EthernetPacket, EtherTypes};
-use pnet::packet::ipv4::Ipv4Packet;
-use pnet::packet::ip::IpNextHeaderProtocols;
-use pnet::packet::tcp::TcpPacket;
+use self::pnet::packet::Packet;
+use self::pnet::packet::ethernet::{EthernetPacket, EtherTypes};
+use self::pnet::packet::ipv4::Ipv4Packet;
+use self::pnet::packet::ip::IpNextHeaderProtocols;
+use self::pnet::packet::tcp::TcpPacket;
 
-use lib::conn::*;
-use lib::data::*;
+use super::conn::*;
+use super::data::*;
 
 static HANDSHAKE_PRELUDE: &'static [u8] = b"\x13BitTorrent protocol";
 
 pub struct Worker<'a> {
   pub cpool: r2d2::Pool<TcpConnectionManager>,
-  pub packet: pcap::Packet<'a>,
+  //pub packet_data: [u8; 134], //ether (14) + ip (60) + tcp (60) + hs (20)
+
+  //pub packet_data: std::vec::Vec<u8>,
+  pub packet_data: &'a [u8],
+  
+  //pub packet: &'a pcap::Packet<'a>,
   pub hash: &'a Mutex<HashMap<PacketDataKey, (), BuildHasherDefault<fnv::FnvHasher>>>
 }
 
 impl<'a> kirk::Job for Worker<'a> {
   fn perform(self) {
-    println!("wpacket: {:?}", self.packet);
+    //d_println!("packet: {:?}", self.packet_data);
 
-    let ethernet  = match EthernetPacket::new(self.packet.data) {
+    //let ethernet  = match EthernetPacket::new(&self.packet_data) {
+    let ethernet  = match EthernetPacket::new(self.packet_data) {
       Some(ethernet) => ethernet,
       None => {
         d_println!("Invalid ethernet packet");
@@ -129,10 +135,12 @@ impl<'a> Worker<'a> {
         };
 
         if hash.contains_key(key) {
+          println!("existing key");
           return;
         }
         let key_r = key.swap();
         if hash.contains_key(&key_r) {
+          println!("existing key_r");
           return;
         }
 
@@ -145,14 +153,14 @@ impl<'a> Worker<'a> {
 
       let mut conn = self.cpool.get().unwrap();
       if conn.is_connected() {
-        println!("live socket");
+        d_println!("live socket");
       } else {
-        println!("dead socket");
+        d_println!("dead socket");
       }
-      println!("conn2: {:?}", *conn);
       let _ = conn.write(data.to_bytes());
+      let _ = conn.write(payload);
 
-      std::process::exit(1);
+      //std::process::exit(1);
     }
   }
 }

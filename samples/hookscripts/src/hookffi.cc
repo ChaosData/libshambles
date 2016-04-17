@@ -158,6 +158,7 @@ int8_t start(int _fd, uds_data_t* _data) {
     DEBUG_printf("peer: %d\n", peer);
 
 
+    /*
     pid = fork(); // https://github.com/ffi/ffi/issues/241
     if (pid == -1) {
       fprintf(stderr, "Something bad happened.\n");
@@ -174,7 +175,17 @@ int8_t start(int _fd, uds_data_t* _data) {
       } else {
         exit(0);
       }
+    }*/
+    pid = fork(); // https://github.com/ffi/ffi/issues/241
+    if (pid == -1) {
+      fprintf(stderr, "Something bad happened.\n");
+      close(peer);
+      continue;
+    } else if (pid > 0) {
+      close(peer);
+      continue;
     }
+
 
     int sent_fd[2];
     struct msghdr message;
@@ -242,7 +253,6 @@ char* get_injected_packet(uds_data_t const * const _data) {
   //recv(_data->uds_client, ambles, sizeof(ambles), 0);
   //puts(ambles);
   uint16_t len = 0;
-  printf("len: %hu\n", len);
   recv(_data->uds_client, &len, sizeof(len), 0);
   char* buf = (char*)malloc(len + sizeof(len));
   memcpy(buf, &len, sizeof(len));
@@ -253,6 +263,7 @@ char* get_injected_packet(uds_data_t const * const _data) {
 
 int teardown(uds_data_t* _data) {
   DEBUG_printf("%s\n", __func__);
+  puts("TEARDOWN!");
   close(_data->outer_sock);
   close(_data->inner_sock);
 

@@ -19,7 +19,7 @@ Options:
   --version     Show version.
 ";
 
-#[derive(Debug, RustcDecodable)]
+#[derive(Debug, RustcDecodable, Clone)]
 pub struct Args {
   pub arg_iface: String,
   pub arg_listen: String,
@@ -53,7 +53,7 @@ impl Args {
   }
 
   fn validate(&self) -> bool {
-    let re = Regex::new(r"^[a-zA-Z]+[a-zA-Z0-9.-]+:[0-9]+$").unwrap();
+    let re = Regex::new(r"^[a-zA-Z0-9]+[a-zA-Z0-9.-]+:[0-9]+$").unwrap();
     re.is_match(&self.arg_listen) && re.is_match(&self.arg_target)
   }
 }
@@ -65,3 +65,11 @@ fn exit() -> ! {
   );
   std::process::exit(1);
 }
+
+pub fn parse_target(target: &String) -> (&str, u16) {
+  let mut host_port = target.split(":").take(2);
+  let host = host_port.next().unwrap();
+  let port: u16 = host_port.next().unwrap().parse::<u16>().unwrap();
+  (host, port)
+}
+

@@ -25,7 +25,7 @@
 '''
 
 from ctypes import *
-import sys
+import sys, os
 import socket
 import time
 import struct
@@ -55,8 +55,12 @@ def hook(uds_datap):
   size_packet = get_injected_packet(uds_datap)
   size = struct.unpack("=H", size_packet[:2])[0]
   packet = size_packet[2:2+size]
-  custom_hook(outer_sock, inner_sock, packet)
+  custom_hook(outer_sock, inner_sock, uds_datap, packet)
+
+  print "shutting down gracefully"
+  time.sleep(2)
   hookffi.teardown(uds_datap)
+
   sys.exit(0)
 
 
@@ -70,21 +74,40 @@ class Echo(Protocol):
   def dataReceived(self, data):
     print self.factory.name + ":recv => " + repr(data)
     #self.factory.echoer.transport.write(data)
-    self.factory.echoer.send(data)
+    try:
+      self.factory.echoer.send(data.replace("hello", "goodbye"))
+    except:
+      print "failed to send"
+      hookffi.teardown(self.factory.uds_datap)
+      os._exit(1)
 
+      #try:
+      #  reactor.callFromThread(reactor.stop)
+      #except:
+      #  print "failed to send & failed to stop"
+      #  raise Exception("failed to send & failed to stop")
+      #  pass
   def connectionLost(self, reason):
-    print "connectionLost"
+    print "connectionLost(%s)" % self.factory.name 
     #self.stopListening()
     #reactor.stop()
-    reactor.callFromThread(reactor.stop)
+    hookffi.teardown(self.factory.uds_datap)
+    os._exit(1)
+    #sys.exit(0)
+#    try:
+#      reactor.callFromThread(reactor.stop)
+#    except:
+#      print "failed to stop"
+#      pass
 
 class EchoFactory(Factory):
   protocol = Echo
-  def __init__(self, name, peer_port):
+  def __init__(self, name, peer_port, uds_datap):
     self.echoer = peer_port
     self.name = name
+    self.uds_datap = uds_datap
 
-def custom_hook(outer_sock, inner_sock, packet=""):
+def custom_hook_new(outer_sock, inner_sock, uds_datap, packet=""):
   print "hooked!"
   print "Client sent: " + repr(packet)
 
@@ -93,11 +116,11 @@ def custom_hook(outer_sock, inner_sock, packet=""):
     outer_sock.setblocking(False)
 
     inner_port = reactor.adoptStreamConnection(
-      inner_sock.fileno(), AF_INET, EchoFactory("inner", outer_sock)
+      inner_sock.fileno(), AF_INET, EchoFactory("inner", outer_sock, uds_datap)
     )
 
     outer_port = reactor.adoptStreamConnection(
-      outer_sock.fileno(), AF_INET, EchoFactory("outer", inner_sock)
+      outer_sock.fileno(), AF_INET, EchoFactory("outer", inner_sock, uds_datap)
     )
 
     #inner_sock.close()
@@ -106,10 +129,10 @@ def custom_hook(outer_sock, inner_sock, packet=""):
     reactor.run()
 
     #stoppedDeferred = [inner_port.stopListening(), outer_sock.stopListening()]
-  except:
-    print "except"
+  except Exception as e:
+    print "except: " + str(e)
 
-def custom_hook_old(outer_sock, inner_sock, packet=""):
+def custom_hook_old(outer_sock, inner_sock, foo, packet=""):
   try:
     print "hooked!"
     print "Client sent: " + repr(packet)
@@ -130,8 +153,129 @@ def custom_hook_old(outer_sock, inner_sock, packet=""):
     outer_sock.close()
   except:
     print "except"
+
     pass
 
+
+import signal
+import errno
+
+def signal_handler(signum, frame):
+    raise socket.timeout("Timed out!")
+signal.signal(signal.SIGALRM, signal_handler)
+
+def custom_hook_(outer_sock, inner_sock, foo, packet=""):
+  print "hooked!"
+  print "client sent: " + repr(packet)
+
+  #outer_sock.settimeout(2)
+  #inner_sock.settimeout(2)
+  #outer_sock.setblocking(0)
+  #inner_sock.setblocking(0)
+
+  d = 0
+  data = []
+  while True:
+    print "loop"
+    try:
+      if d == 0:
+        print "d == 0"
+        signal.alarm(2)
+        data = outer_sock.recv(1024)
+        inner_sock.sendall(data)
+      elif d == 1:
+        print "d == 1"
+        signal.alarm(2)
+        data = inner_sock.recv(1024).replace("hello", "goodbye")
+        #data = inner_sock.recv(1024)
+        outer_sock.sendall(data)
+      print str(d) + ":" + repr(data)
+      if len(data) == 0:
+        break
+    except socket.timeout as e:
+      data = []
+      print "socket.timeout"
+      print e
+    except Exception as e:
+      data = []
+      print "Exception"
+      if e.errno == errno.EINTR:
+        print "EINTR"
+        continue
+      print e
+      break
+    if d == 1:
+      d = 0
+    else:
+      d = 1
+  try:
+    inner_sock.close()
+  except:
+    pass
+  try:
+    outer_sock.close()
+  except:
+    pass
+  
+def custom_hook__(outer_sock, inner_sock, foo, packet=""):
+  try:
+    print "hooked!"
+    print "Client sent: " + repr(packet)
+
+    #outer_sock.sendall(len(packet)*"Z")
+    #outer_sock.sendall(packet.replace("hello", "goodbye"))
+
+
+    print "11111"
+
+    inner_sock.sendall("YOLO inner1\n")
+    npacket = inner_sock.recv(4096)
+    print "inner: " + repr(npacket)
+    inner_sock.sendall("YOLO inner2\n")
+    inner_sock.close()
+
+    print "22222"
+
+    rpacket = outer_sock.recv(4096)
+    print "outer: " + repr(rpacket)
+    outer_sock.sendall("YOLO outer\n");
+    rpacket = outer_sock.recv(4096)
+    outer_sock.close()
+
+
+  except Exception as e:
+    print "except"
+    print e
+
+    pass
+
+
+def custom_hook(outer_sock, inner_sock, foo, packet=""):
+  try:
+    print "hooked!"
+    print "client sent: " + repr(packet)
+
+    try:
+      signal.alarm(2)    
+      rpacket = outer_sock.recv(4096)
+      print "outer: " + repr(rpacket)
+      inner_sock.sendall(rpacket.replace("dawg", "doge"))
+    except:
+      pass
+
+    npacket = inner_sock.recv(4096)
+    print "inner: " + repr(npacket)
+    outer_sock.sendall(npacket.replace("hello", "goodbye"));
+    
+    rpacket = outer_sock.recv(4096)
+    print "outer: " + repr(rpacket)
+    inner_sock.sendall(rpacket.replace("world", "moon"))
+
+  except Exception as e:
+    print "except"
+    print e
+  inner_sock.close()
+  outer_sock.close()
 
 def main():
   if len(sys.argv) != 3:
